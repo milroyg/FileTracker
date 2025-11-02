@@ -1,5 +1,5 @@
 [versions]
-agp = "8.3.2"
+agp = "8.13.0"
 junit = "4.13.2"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
@@ -7,11 +7,12 @@ appcompat = "1.6.1"
 material = "1.11.0"
 activity = "1.9.0"
 constraintlayout = "2.1.4"
-filamentAndroid = "1.17.1"
+filamentAndroid = "1.57.1"
 firebaseDatabase = "21.0.0"
 playServicesVision = "20.1.3"
 textRecognition = "16.0.0"
-ucrop = "2.2.8"
+#ucrop = "2.2.11"
+ucropVersion = "2.2.11"
 volley = "1.2.1"
 firebaseCrashlyticsBuildtools = "2.9.9"
 uiAndroid = "1.6.7"
@@ -30,11 +31,12 @@ appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "a
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
-filament-android = { group = "com.google.ar.sceneform", name = "filament-android", version.ref = "filamentAndroid" }
+filament-android = { group = "com.google.android.filament", name = "filament-android", version.ref = "filamentAndroid" }
 firebase-database = { group = "com.google.firebase", name = "firebase-database", version.ref = "firebaseDatabase" }
 play-services-vision = { module = "com.google.android.gms:play-services-vision", version.ref = "playServicesVision" }
-text-recognition = { module = "com.google.mlkit:text-recognition", version = "16.0.0" }
-ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }
+text-recognition = { module = "com.google.mlkit:text-recognition", version = "16.0.1" }
+#ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }
+ucrop-v228native = { module = "com.github.yalantis:ucrop", version.ref = "ucropVersion" }
 volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
 ui-android = { group = "androidx.compose.ui", name = "ui-android", version.ref = "uiAndroid" }
 foundation-android = { group = "androidx.compose.foundation", name = "foundation-android", version.ref = "foundationAndroid" }

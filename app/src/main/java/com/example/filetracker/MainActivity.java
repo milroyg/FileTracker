@@ -113,32 +113,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
-
-
         // Create an instance of DBHandler
         dbHandler = new DBHandler(this);
         downloadAndStoreCSVData();
-
-//        // Inside onCreate() method after initializing the database handler
-//        AutoCompleteTextView autoCompleteTextView = findViewById(R.id.idDivision);
-//
-//// Assuming getDivisions() method returns an ArrayList<String> containing division names
-//        ArrayList<String> divisionsList = dbHandler.getDivisions();
-//
-//// Remove duplicates from the divisions list
-//        HashSet<String> uniqueDivisionsSet = new HashSet<>(divisionsList);
-//        ArrayList<String> uniqueDivisionsList = new ArrayList<>(uniqueDivisionsSet);
-//
-//        if (uniqueDivisionsList != null && !uniqueDivisionsList.isEmpty()) {
-//            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, uniqueDivisionsList);
-//            autoCompleteTextView.setAdapter(adapter);
-//        } else {
-//            // Handle case where no unique divisions are found in the database
-//            Toast.makeText(this, "No unique divisions found", Toast.LENGTH_SHORT).show();
-//        }
-
-    }
+            }
 
     //--------------------------------------------------------------------------------------------//
     //Csv Link
@@ -246,7 +224,7 @@ public class MainActivity extends AppCompatActivity {
         db.close();
 
         Toast.makeText(MainActivity.this, "Refreshing...Please wait!", Toast.LENGTH_SHORT).show();
-        Toast.makeText(MainActivity.this, "Done.", Toast.LENGTH_SHORT).show();
+        Toast.makeText(MainActivity.this, "Success.", Toast.LENGTH_SHORT).show();
     }
 
     //--------------------------------------------------------------------------------------------//

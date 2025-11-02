@@ -5,14 +5,15 @@ plugins {
 
 android {
     namespace 'com.example.filetracker'
-    compileSdk 34
+    compileSdk 36
+    ndkVersion "26.3.11579264"
 
     defaultConfig {
         applicationId "com.wrdfiletracker"
         minSdk 26
-        targetSdk 34
-        versionCode 6
-        versionName "1.5"
+        targetSdk 36
+        versionCode 7
+        versionName "1.6"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -69,5 +70,5 @@ dependencies {
     implementation libs.text.recognition
     implementation libs.play.services.vision
 //    implementation 'com.github.yalantis:ucrop:2.2.8'
-    implementation 'com.github.yalantis:ucrop:2.2.8-native'
+    implementation libs.ucrop.v228native
 }
