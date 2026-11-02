@@ -1,0 +1,338 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Modal,
+  FlatList,
+  Alert,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { User, Building, Lock, ChevronDown, Check, X } from 'lucide-react-native';
+import { LoginScreenProps } from '../navigation/types';
+import { useTheme } from '../theme/ThemeContext';
+import { fontFamilies } from '../theme/typography';
+import { CustomInput } from '../components/common/CustomInput';
+import { CustomButton } from '../components/common/CustomButton';
+import { useDirectory } from '../hooks/useDirectory';
+import { StorageService } from '../services/storageService';
+import { SecurityConfig } from '../config/security';
+
+export function LoginScreen({ navigation }: LoginScreenProps) {
+  const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
+  const { data: directory, isLoading: isDirLoading } = useDirectory();
+
+  const [username, setUsername] = useState('');
+  const [division, setDivision] = useState('');
+  const [password, setPassword] = useState('');
+  const [divisionModalVisible, setDivisionModalVisible] = useState(false);
+  const [divisionSearch, setDivisionSearch] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function checkAutoLogin() {
+      const session = await StorageService.getSession();
+      if (session.isLoggedIn && session.username && session.division) {
+        navigation.replace('Dashboard', {
+          username: session.username,
+          division: session.division,
+        });
+      }
+    }
+    checkAutoLogin();
+  }, [navigation]);
+
+  const divisionsList = directory?.divisions || [];
+  const filteredDivisions = divisionsList.filter((d) =>
+    d.toLowerCase().includes(divisionSearch.toLowerCase())
+  );
+
+  const handleLogin = async () => {
+    const trimmedUser = username.trim();
+    const trimmedDiv = division.trim();
+
+    if (!trimmedUser || !trimmedDiv || !password) {
+      Alert.alert('Incomplete Fields', 'Please enter username, division, and password.');
+      return;
+    }
+
+    if (password !== SecurityConfig.DEFAULT_ADMIN_PASSWORD) {
+      Alert.alert('Invalid Password', 'The credentials entered are incorrect.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await StorageService.saveSession(trimmedUser, trimmedDiv);
+      navigation.replace('Dashboard', {
+        username: trimmedUser,
+        division: trimmedDiv,
+      });
+    } catch (err: any) {
+      Alert.alert('Login Error', err.message || 'Unable to persist login session.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <View
+      style={[
+        styles.screen,
+        {
+          backgroundColor: isDark ? colors.background : '#0C1DBB',
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
+      <KeyboardAwareScrollView
+        bottomOffset={20}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+          {/* Logo & Branding */}
+          <View style={styles.branding}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={[styles.title, { color: colors.primary }]}>WRD FileTracker</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              Government of Goa
+            </Text>
+          </View>
+
+          {/* Username Input */}
+          <CustomInput
+            label="Username / Employee"
+            placeholder="Enter your name"
+            value={username}
+            onChangeText={setUsername}
+            leftIcon={<User size={18} color={colors.textSecondary} />}
+          />
+
+          {/* Division Selector */}
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Division</Text>
+          <TouchableOpacity
+            style={[
+              styles.dropdownButton,
+              {
+                backgroundColor: colors.inputBackground,
+                borderColor: colors.border,
+              },
+            ]}
+            activeOpacity={0.8}
+            onPress={() => setDivisionModalVisible(true)}
+          >
+            <View style={styles.dropdownLeft}>
+              <Building size={18} color={colors.textSecondary} />
+              <Text
+                style={[
+                  styles.dropdownText,
+                  { color: division ? colors.text : colors.textMuted },
+                ]}
+              >
+                {division || (isDirLoading ? 'Loading divisions...' : 'Select Division')}
+              </Text>
+            </View>
+            <ChevronDown size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          {/* Password Input */}
+          <CustomInput
+            label="Password"
+            placeholder="Enter department password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            leftIcon={<Lock size={18} color={colors.textSecondary} />}
+          />
+
+          {/* Submit Button */}
+          <CustomButton
+            title="Login"
+            onPress={handleLogin}
+            loading={isSubmitting}
+            style={styles.loginBtn}
+          />
+        </View>
+
+        <Text style={styles.versionText}>WRD File Tracker v2.0</Text>
+      </KeyboardAwareScrollView>
+
+      {/* Division Picker Modal */}
+      <Modal
+        visible={divisionModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDivisionModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.cardBackground }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Division</Text>
+              <TouchableOpacity onPress={() => setDivisionModalVisible(false)}>
+                <X size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <CustomInput
+              placeholder="Search division..."
+              value={divisionSearch}
+              onChangeText={setDivisionSearch}
+              style={{ height: 42 }}
+            />
+
+            <FlatList
+              data={filteredDivisions}
+              keyExtractor={(item) => item}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => {
+                const isSelected = item === division;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.divisionItem,
+                      { borderBottomColor: colors.border },
+                      isSelected && { backgroundColor: isDark ? 'rgba(76,115,253,0.15)' : '#eff6ff' },
+                    ]}
+                    onPress={() => {
+                      setDivision(item);
+                      setDivisionModalVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.divisionItemText,
+                        {
+                          color: isSelected ? colors.primary : colors.text,
+                          fontFamily: isSelected ? fontFamilies.bold : fontFamilies.regular,
+                        },
+                      ]}
+                    >
+                      {item}
+                    </Text>
+                    {isSelected && <Check size={18} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  card: {
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  branding: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  logo: {
+    width: 72,
+    height: 72,
+    marginBottom: 8,
+  },
+  title: {
+    fontFamily: fontFamilies.extraBold,
+    fontSize: 26,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontFamily: fontFamilies.medium,
+    fontSize: 14,
+    marginTop: 2,
+  },
+  fieldLabel: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderRadius: 14,
+    height: 54,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  dropdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dropdownText: {
+    fontFamily: fontFamilies.regular,
+    fontSize: 16,
+  },
+  loginBtn: {
+    marginTop: 10,
+  },
+  versionText: {
+    fontFamily: fontFamilies.semiBold,
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    marginTop: 24,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '75%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: 18,
+  },
+  divisionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8,
+  },
+  divisionItemText: {
+    fontSize: 16,
+  },
+});
