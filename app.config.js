@@ -51,6 +51,8 @@ module.exports = ({ config }) => {
         },
       ],
       'expo-secure-store',
+      'expo-sharing',
+      'expo-splash-screen',
       [
         'expo-build-properties',
         {
