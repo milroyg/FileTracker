@@ -7,7 +7,7 @@ import { QueryClient, onlineManager } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
+import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import {
   useFonts,
   Inter_400Regular,
@@ -22,11 +22,11 @@ import { checkDeviceIntegrity } from './src/config/security';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 
 // Keep the splash screen visible while fonts are loading
-SplashScreen.preventAutoHideAsync().catch(() => {});
+SplashScreen.preventAutoHideAsync().catch(() => { });
 
 // 1. Network-aware auto-sync: Automatically re-syncs stale queries when network reconnects
 onlineManager.setEventListener((setOnline) => {
-  return NetInfo.addEventListener((state) => {
+  return NetInfo.addEventListener((state: NetInfoState) => {
     setOnline(!!state.isConnected);
   });
 });
@@ -82,7 +82,7 @@ export default function App() {
 
   useEffect(() => {
     if (fontsLoaded) {
-      SplashScreen.hideAsync().catch(() => {});
+      SplashScreen.hideAsync().catch(() => { });
     }
   }, [fontsLoaded]);
 
