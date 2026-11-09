@@ -1268,11 +1268,11 @@
     {
       "type": "contents",
       "id": "expoConfig",
-      "contents": "{\"android\":{\"adaptiveIcon\":{\"backgroundColor\":\"#1e3a8a\",\"foregroundImage\":\"./assets/logo.png\"},\"package\":\"com.wrdfiletracker\",\"permissions\":[\"android.permission.ACCESS_NETWORK_STATE\",\"android.permission.CAMERA\",\"android.permission.INTERNET\",\"android.permission.RECORD_AUDIO\"]},\"extra\":{\"eas\":{\"projectId\":\"3db48f4e-218f-49bd-8cbc-2f03953cb5e2\"}},\"icon\":\"./assets/logo.png\",\"ios\":{\"bundleIdentifier\":\"com.wrdfiletracker\",\"infoPlist\":{\"NSCameraUsageDescription\":\"WRD File Tracker requires camera access to scan file QR codes and extract file subjects via OCR.\",\"NSPhotoLibraryUsageDescription\":\"WRD File Tracker requires photo library access to select file documents.\"},\"supportsTablet\":true},\"name\":\"WRD File Tracker\",\"newArchEnabled\":true,\"orientation\":\"portrait\",\"platforms\":[\"android\",\"ios\"],\"plugins\":[\"expo-secure-store\",\"expo-sharing\",\"expo-splash-screen\",[\"expo-build-properties\",{\"android\":{\"compileSdkVersion\":36,\"enableMinifyInReleaseBuilds\":true,\"enableProguardInReleaseBuilds\":true,\"minSdkVersion\":26,\"targetSdkVersion\":36},\"ios\":{\"deploymentTarget\":\"16.4\"}}],[\"expo-camera\",{\"cameraPermission\":\"Allow WRD File Tracker to access your camera to scan file barcodes and QR codes.\"}],[\"expo-image-picker\",{\"photosPermission\":\"Allow WRD File Tracker to access your photos.\"}]],\"sdkVersion\":\"57.0.0\",\"slug\":\"wrd-filetracker\",\"splash\":{\"backgroundColor\":\"#1e3a8a\",\"image\":\"./assets/logo.png\",\"resizeMode\":\"contain\"},\"userInterfaceStyle\":\"automatic\",\"version\":\"2.0.0\"}",
+      "contents": "{\"android\":{\"adaptiveIcon\":{\"backgroundColor\":\"#1e3a8a\",\"foregroundImage\":\"./assets/logo.png\"},\"package\":\"com.wrdfiletracker\",\"permissions\":[\"android.permission.ACCESS_NETWORK_STATE\",\"android.permission.CAMERA\",\"android.permission.INTERNET\",\"android.permission.RECORD_AUDIO\"]},\"extra\":{\"eas\":{\"projectId\":\"457fc8f5-6795-4407-b787-10765272a0eb\"}},\"icon\":\"./assets/logo.png\",\"ios\":{\"bundleIdentifier\":\"com.wrdfiletracker\",\"infoPlist\":{\"NSCameraUsageDescription\":\"WRD File Tracker requires camera access to scan file QR codes and extract file subjects via OCR.\",\"NSPhotoLibraryUsageDescription\":\"WRD File Tracker requires photo library access to select file documents.\"},\"supportsTablet\":true},\"name\":\"WRD File Tracker\",\"newArchEnabled\":true,\"orientation\":\"portrait\",\"platforms\":[\"android\",\"ios\"],\"plugins\":[\"expo-secure-store\",\"expo-sharing\",\"expo-splash-screen\",[\"expo-build-properties\",{\"android\":{\"compileSdkVersion\":36,\"enableMinifyInReleaseBuilds\":true,\"enableProguardInReleaseBuilds\":true,\"minSdkVersion\":26,\"targetSdkVersion\":36},\"ios\":{\"deploymentTarget\":\"16.4\"}}],[\"expo-camera\",{\"cameraPermission\":\"Allow WRD File Tracker to access your camera to scan file barcodes and QR codes.\"}],[\"expo-image-picker\",{\"photosPermission\":\"Allow WRD File Tracker to access your photos.\"}]],\"sdkVersion\":\"57.0.0\",\"slug\":\"wrd-filetracker\",\"splash\":{\"backgroundColor\":\"#1e3a8a\",\"image\":\"./assets/logo.png\",\"resizeMode\":\"contain\"},\"userInterfaceStyle\":\"automatic\",\"version\":\"2.0.0\"}",
       "reasons": [
         "expoConfig"
       ],
-      "hash": "564fb93f02d72c4304186a79fc0b8e53308cd14f"
+      "hash": "6fc5cb963aef3aaf975903ff697c81c026b45889"
     },
     {
       "type": "contents",
@@ -1311,5 +1311,5 @@
       "hash": "91ef4b9de3bc660a0b4c66f887654f17f6a55b3b"
     }
   ],
-  "hash": "d727dad868dbf5fe7c55a10ec7b3234447d80ff7"
+  "hash": "4970031cb3066be3f75d4625736aeeb992437191"
 }
