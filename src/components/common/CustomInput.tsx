@@ -7,6 +7,7 @@ import {
   TextInputProps,
   TouchableOpacity,
 } from 'react-native';
+import { X } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { fontFamilies } from '../../theme/typography';
 
@@ -16,6 +17,8 @@ interface CustomInputProps extends TextInputProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   onRightIconPress?: () => void;
+  clearable?: boolean;
+  onClear?: () => void;
 }
 
 export function CustomInput({
@@ -24,10 +27,14 @@ export function CustomInput({
   leftIcon,
   rightIcon,
   onRightIconPress,
+  clearable,
+  onClear,
   style,
   ...rest
 }: CustomInputProps) {
   const { colors } = useTheme();
+
+  const showClear = clearable && rest.value !== undefined && String(rest.value).length > 0 && onClear;
 
   return (
     <View style={styles.wrapper}>
@@ -56,6 +63,16 @@ export function CustomInput({
           autoCapitalize="none"
           {...rest}
         />
+        {showClear && (
+          <TouchableOpacity
+            activeOpacity={0.6}
+            onPress={onClear}
+            style={styles.clearButton}
+            accessibilityLabel="Clear text"
+          >
+            <X size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
         {rightIcon &&
           (onRightIconPress ? (
             <TouchableOpacity
@@ -106,6 +123,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 4,
+  },
+  clearButton: {
+    padding: 6,
+    marginRight: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   errorText: {
     fontFamily: fontFamilies.regular,

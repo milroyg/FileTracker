@@ -10,6 +10,7 @@ import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { WifiOff, Wifi } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { fontFamilies } from '../../theme/typography';
+import { OfflineSyncService } from '../../services/offlineSyncService';
 
 export function OfflineBanner() {
   const insets = useSafeAreaInsets();
@@ -17,6 +18,7 @@ export function OfflineBanner() {
 
   const [isOffline, setIsOffline] = useState(false);
   const [showRestored, setShowRestored] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('Back Online • Connected to WRD server');
   const hasMountedRef = useRef(false);
 
   // Animation controller for sliding down from top
@@ -36,11 +38,21 @@ export function OfflineBanner() {
 
       if (hasMountedRef.current) {
         if (!offline && isOffline) {
-          // Just reconnected: show temporary "Back Online" banner
+          // Just reconnected: sync offline outbox & show confirmation
           setShowRestored(true);
+          OfflineSyncService.syncOutbox().then(({ syncedCount }) => {
+            if (syncedCount > 0) {
+              setSyncMessage(
+                `Back Online • Synced ${syncedCount} offline file movement${syncedCount === 1 ? '' : 's'}`
+              );
+            } else {
+              setSyncMessage('Back Online • Connected to WRD server');
+            }
+          });
+
           setTimeout(() => {
             setShowRestored(false);
-          }, 2500);
+          }, 3000);
         }
       }
 
@@ -73,7 +85,7 @@ export function OfflineBanner() {
   const isRestored = !isOffline && showRestored;
   const bannerBg = isRestored ? colors.success : colors.error;
   const statusText = isRestored
-    ? 'Back Online • Connected to internet'
+    ? syncMessage
     : 'No Internet Connection • Offline Mode';
 
   return (

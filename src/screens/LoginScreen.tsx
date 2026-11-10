@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { User, Building, Lock, ChevronDown, Check, X } from 'lucide-react-native';
+import { User, Building, Lock, ChevronDown, Check, X, Eye, EyeOff, Search } from 'lucide-react-native';
 import { LoginScreenProps } from '../navigation/types';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
@@ -29,6 +29,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
   const [username, setUsername] = useState('');
   const [division, setDivision] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [divisionModalVisible, setDivisionModalVisible] = useState(false);
   const [divisionSearch, setDivisionSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +67,16 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         visible: true,
         title: 'Incomplete Fields',
         message: 'Please enter username, division, and password.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (trimmedUser.length < 3) {
+      setDialog({
+        visible: true,
+        title: 'Invalid Username',
+        message: 'Username must be at least 3 characters long.',
         type: 'warning',
       });
       return;
@@ -172,10 +183,18 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           <CustomInput
             label="Password"
             placeholder="Enter department password"
-            secureTextEntry
+            secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
             leftIcon={<Lock size={18} color={colors.textSecondary} />}
+            rightIcon={
+              showPassword ? (
+                <EyeOff size={18} color={colors.textSecondary} />
+              ) : (
+                <Eye size={18} color={colors.textSecondary} />
+              )
+            }
+            onRightIconPress={() => setShowPassword((prev) => !prev)}
           />
 
           {/* Submit Button */}
@@ -224,6 +243,9 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
               placeholder="Search division..."
               value={divisionSearch}
               onChangeText={setDivisionSearch}
+              leftIcon={<Search size={16} color={colors.textSecondary} />}
+              clearable
+              onClear={() => setDivisionSearch('')}
               style={{ height: 42 }}
             />
 
@@ -231,6 +253,19 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
               data={filteredDivisions}
               keyExtractor={(item) => item}
               keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={
+                <View style={{ paddingVertical: 28, alignItems: 'center' }}>
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontFamily: fontFamilies.medium,
+                      fontSize: 14,
+                    }}
+                  >
+                    No divisions found matching "{divisionSearch}"
+                  </Text>
+                </View>
+              }
               renderItem={({ item }) => {
                 const isSelected = item === division;
                 return (

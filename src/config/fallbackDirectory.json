@@ -1,0 +1,66 @@
+{
+  "divisions": [
+    "Division I (Works), Porvorim",
+    "Division II, Panaji",
+    "Division III, Ponda",
+    "Division IV, Margao",
+    "Division V, Mapusa",
+    "Division VI, Bicholim",
+    "Division VII, Curchorem",
+    "Division VIII, Canacona",
+    "Division IX, Valpoi",
+    "Division X, Pernem",
+    "Head Office, Sinchan Bhavan",
+    "Minor Irrigation, Panaji",
+    "Monitoring & Evaluation",
+    "Quality Control, Porvorim"
+  ],
+  "employeesByDivision": {
+    "Head Office, Sinchan Bhavan": [
+      "Chief Engineer",
+      "Superintending Engineer",
+      "Executive Engineer",
+      "Assistant Engineer",
+      "Junior Engineer",
+      "Head Clerk",
+      "Accountant"
+    ],
+    "Division I (Works), Porvorim": [
+      "Executive Engineer",
+      "Assistant Engineer (SD-I)",
+      "Assistant Engineer (SD-II)",
+      "Junior Engineer",
+      "Division Clerk"
+    ],
+    "Division II, Panaji": [
+      "Executive Engineer",
+      "Assistant Engineer",
+      "Junior Engineer",
+      "Office Clerk"
+    ],
+    "Division III, Ponda": [
+      "Executive Engineer",
+      "Assistant Engineer",
+      "Junior Engineer",
+      "Office Clerk"
+    ],
+    "Division IV, Margao": [
+      "Executive Engineer",
+      "Assistant Engineer",
+      "Junior Engineer",
+      "Office Clerk"
+    ]
+  },
+  "allEmployees": [
+    "Chief Engineer",
+    "Superintending Engineer",
+    "Executive Engineer",
+    "Assistant Engineer",
+    "Junior Engineer",
+    "Head Clerk",
+    "Accountant",
+    "Division Clerk",
+    "Office Clerk"
+  ]
+}
+

@@ -1,15 +1,16 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
-import { X, Flashlight, FlashlightOff, AlertCircle } from 'lucide-react-native';
+import { X, Flashlight, FlashlightOff, AlertCircle, Keyboard } from 'lucide-react-native';
 import { ScannerScreenProps } from '../navigation/types';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
@@ -17,6 +18,8 @@ import { useDirectory } from '../hooks/useDirectory';
 import { EmployeeSelectModal } from '../components/EmployeeSelectModal';
 import { RegisterFileModal } from '../components/RegisterFileModal';
 import { CustomButton } from '../components/common/CustomButton';
+import { CustomInput } from '../components/common/CustomInput';
+import { CustomDialog, DialogButton } from '../components/common/CustomDialog';
 
 export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   const { colors } = useTheme();
@@ -28,12 +31,38 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   const [isScanningActive, setIsScanningActive] = useState(true);
   const [scannedCode, setScannedCode] = useState<string | null>(null);
 
+  // Manual code entry modal
+  const [manualModalVisible, setManualModalVisible] = useState(false);
+  const [manualCode, setManualCode] = useState('');
+
+  // Dialog state
+  const [dialog, setDialog] = useState<{
+    visible: boolean;
+    title: string;
+    message?: string;
+    type?: 'info' | 'success' | 'error' | 'warning' | 'confirm';
+    buttons?: DialogButton[];
+  }>({ visible: false, title: '' });
+
   // Modals state
   const [employeeModalVisible, setEmployeeModalVisible] = useState(false);
   const [registerModalVisible, setRegisterModalVisible] = useState(false);
 
   // Lock to avoid multi-firing
   const scanLockRef = useRef(false);
+
+  // Auto-off torch after 60 seconds to conserve battery
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    if (torchEnabled) {
+      timer = setTimeout(() => {
+        setTorchEnabled(false);
+      }, 60000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [torchEnabled]);
 
   const divisionEmployees = directory?.employeesByDivision[division] || directory?.allEmployees || [];
 
@@ -61,6 +90,49 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
     );
   }
 
+  const processCode = (rawCode: string) => {
+    const clean = rawCode.trim();
+    if (!clean) {
+      resumeScanning();
+      return;
+    }
+
+    if (clean.length < 2) {
+      setDialog({
+        visible: true,
+        title: 'Invalid Barcode',
+        message: 'The scanned code is too short to be a valid file barcode.',
+        type: 'warning',
+        buttons: [{ text: 'OK', onPress: () => resumeScanning() }],
+      });
+      return;
+    }
+
+    // Check if code resembles an external URL or payment QR
+    if (/^(https?:\/\/|upi:\/\/|mailto:|tel:)/i.test(clean)) {
+      setDialog({
+        visible: true,
+        title: 'Non-WRD Barcode Detected',
+        message: `Scanned code "${clean.slice(0, 36)}..." appears to be an external link or payment QR code. Proceed anyway?`,
+        type: 'confirm',
+        buttons: [
+          { text: 'Cancel', style: 'cancel', onPress: () => resumeScanning() },
+          {
+            text: 'Proceed',
+            onPress: () => {
+              setScannedCode(clean);
+              setEmployeeModalVisible(true);
+            },
+          },
+        ],
+      });
+      return;
+    }
+
+    setScannedCode(clean);
+    setEmployeeModalVisible(true);
+  };
+
   const handleBarcodeScanned = (result: BarcodeScanningResult) => {
     if (!isScanningActive || scanLockRef.current) return;
     scanLockRef.current = true;
@@ -74,9 +146,7 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
 
     const rawData = result.data || '';
     const cleanCode = rawData.split(';')[0]?.trim() || rawData.trim();
-
-    setScannedCode(cleanCode);
-    setEmployeeModalVisible(true);
+    processCode(cleanCode);
   };
 
   // 1.5-second cooldown flag to prevent 60 scan triggers per second
@@ -172,13 +242,110 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
           </Text>
         </View>
 
-        {/* Bottom Division Info */}
+        {/* Bottom Division Info & Manual Entry Button */}
         <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={[
+              styles.manualEntryBtn,
+              { backgroundColor: colors.overlayLight, borderColor: colors.headerButtonBackground },
+            ]}
+            activeOpacity={0.8}
+            onPress={() => {
+              scanLockRef.current = true;
+              setIsScanningActive(false);
+              setManualModalVisible(true);
+            }}
+          >
+            <Keyboard size={18} color={colors.white} style={{ marginRight: 8 }} />
+            <Text style={[styles.manualEntryText, { color: colors.white }]}>Enter Code Manually</Text>
+          </TouchableOpacity>
+
           <Text style={[styles.bottomUserText, { color: colors.headerSubtext }]}>
             Logged in as <Text style={[styles.bold, { color: colors.white }]}>{username}</Text> ({division})
           </Text>
         </View>
       </SafeAreaView>
+
+      {/* Manual Code Entry Modal */}
+      <Modal
+        visible={manualModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setManualModalVisible(false);
+          resumeScanning();
+        }}
+      >
+        <View style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]}>
+          <View
+            style={[
+              styles.manualModalCard,
+              { backgroundColor: colors.cardBackground, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.manualModalTitle, { color: colors.text }]}>Enter Barcode Manually</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setManualModalVisible(false);
+                  resumeScanning();
+                }}
+              >
+                <X size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.manualModalSubtitle, { color: colors.textSecondary }]}>
+              Type the file barcode or tracking number printed on the physical file.
+            </Text>
+
+            <CustomInput
+              placeholder="e.g. 1024 or WRD-2024-88"
+              value={manualCode}
+              onChangeText={setManualCode}
+              clearable
+              onClear={() => setManualCode('')}
+              autoFocus
+            />
+
+            <View style={styles.manualModalActions}>
+              <CustomButton
+                title="Cancel"
+                variant="outline"
+                onPress={() => {
+                  setManualModalVisible(false);
+                  resumeScanning();
+                }}
+                style={{ flex: 1, marginRight: 8 }}
+              />
+              <CustomButton
+                title="Continue"
+                onPress={() => {
+                  const code = manualCode.trim();
+                  if (!code) return;
+                  setManualModalVisible(false);
+                  setManualCode('');
+                  processCode(code);
+                }}
+                style={{ flex: 1, marginLeft: 8 }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Status & Validation Dialog */}
+      <CustomDialog
+        visible={dialog.visible}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type || 'info'}
+        buttons={dialog.buttons || [{ text: 'OK', onPress: () => setDialog({ visible: false, title: '' }) }]}
+        onClose={() => {
+          setDialog({ visible: false, title: '' });
+          resumeScanning();
+        }}
+      />
 
       {/* Modal 1: Assign to Employee */}
       {scannedCode && (
@@ -290,6 +457,19 @@ const styles = StyleSheet.create({
   bottomBar: {
     alignItems: 'center',
     paddingBottom: 24,
+    gap: 12,
+  },
+  manualEntryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  manualEntryText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: 14,
   },
   bottomUserText: {
     fontFamily: fontFamilies.regular,
@@ -297,6 +477,42 @@ const styles = StyleSheet.create({
   },
   bold: {
     fontFamily: fontFamilies.bold,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  manualModalCard: {
+    width: '100%',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  manualModalTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: 18,
+  },
+  manualModalSubtitle: {
+    fontFamily: fontFamilies.regular,
+    fontSize: 13,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  manualModalActions: {
+    flexDirection: 'row',
+    marginTop: 8,
   },
   permissionContainer: {
     flex: 1,

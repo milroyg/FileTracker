@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { Camera, FilePlus, X } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
@@ -15,6 +16,7 @@ import { CustomButton } from './common/CustomButton';
 import { CustomDialog, DialogType } from './common/CustomDialog';
 import { FileTrackerApi } from '../api/fileTrackerApi';
 import { captureAndExtractText } from '../services/ocrService';
+import { OfflineSyncService } from '../services/offlineSyncService';
 
 interface RegisterFileModalProps {
   visible: boolean;
@@ -46,14 +48,21 @@ export function RegisterFileModal({
       setIsOcrProcessing(true);
       const result = await captureAndExtractText();
       if (result && result.text) {
-        setSubject(result.text);
+        setSubject(result.text.slice(0, 250));
+      } else {
+        setDialog({
+          visible: true,
+          title: 'Text Not Detected',
+          message: 'Could not extract text automatically from image. Please type the file subject manually.',
+          type: 'info',
+        });
       }
     } catch (error: any) {
       setDialog({
         visible: true,
-        title: 'OCR Failed',
-        message: error.message || 'Could not scan document text.',
-        type: 'error',
+        title: 'OCR Unavailable',
+        message: error.message || 'Please type the file subject manually.',
+        type: 'info',
       });
     } finally {
       setIsOcrProcessing(false);
@@ -72,8 +81,34 @@ export function RegisterFileModal({
       return;
     }
 
+    if (trimmed.length < 3) {
+      setDialog({
+        visible: true,
+        title: 'Subject Too Short',
+        message: 'File subject must be at least 3 characters long.',
+        type: 'warning',
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+
+      // 1. Check network connectivity: Queue in offline outbox if disconnected
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await OfflineSyncService.queueRegisterFile(code, '', trimmed);
+        setDialog({
+          visible: true,
+          title: 'Offline Action Saved',
+          message: 'Device is offline. File registration has been saved to the outbox and will automatically sync when reconnected.',
+          type: 'info',
+          onCloseAction: onSuccess,
+        });
+        return;
+      }
+
+      // 2. Dispatch online API request
       const response = await FileTrackerApi.registerNewFile(code, trimmed);
       setDialog({
         visible: true,
@@ -155,10 +190,18 @@ export function RegisterFileModal({
               placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={4}
+              maxLength={250}
+              autoCapitalize="sentences"
               value={subject}
               onChangeText={setSubject}
               textAlignVertical="top"
             />
+
+            <View style={styles.inputFooter}>
+              <Text style={[styles.charCounter, { color: colors.textMuted }]}>
+                {subject.length} / 250
+              </Text>
+            </View>
 
             <TouchableOpacity
               activeOpacity={0.7}
@@ -272,9 +315,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   textArea: {
-    height: 100,
+    height: 90,
     fontSize: 15,
     textAlignVertical: 'top',
+  },
+  inputFooter: {
+    alignItems: 'flex-end',
+    paddingVertical: 2,
+  },
+  charCounter: {
+    fontFamily: fontFamilies.regular,
+    fontSize: 11,
   },
   ocrButton: {
     flexDirection: 'row',

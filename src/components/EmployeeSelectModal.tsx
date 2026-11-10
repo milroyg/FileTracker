@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -6,14 +6,18 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  ScrollView,
 } from 'react-native';
-import { QrCode, User, Users, Check, X } from 'lucide-react-native';
+import NetInfo from '@react-native-community/netinfo';
+import { QrCode, User, Users, Check, X, UserPlus, Sparkles } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
 import { CustomButton } from './common/CustomButton';
 import { CustomInput } from './common/CustomInput';
 import { CustomDialog, DialogType } from './common/CustomDialog';
 import { FileTrackerApi } from '../api/fileTrackerApi';
+import { FrequentEmployeeService } from '../services/frequentEmployeeService';
+import { OfflineSyncService } from '../services/offlineSyncService';
 
 interface EmployeeSelectModalProps {
   visible: boolean;
@@ -40,6 +44,7 @@ export function EmployeeSelectModal({
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [filterQuery, setFilterQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [frequentEmployees, setFrequentEmployees] = useState<string[]>([]);
   const [dialog, setDialog] = useState<{
     visible: boolean;
     title: string;
@@ -48,16 +53,24 @@ export function EmployeeSelectModal({
     onCloseAction?: () => void;
   }>({ visible: false, title: '' });
 
+  // Load frequently marked colleagues for this division
+  useEffect(() => {
+    if (visible && division) {
+      FrequentEmployeeService.getFrequentEmployees(division).then(setFrequentEmployees);
+    }
+  }, [visible, division]);
+
   const filteredEmployees = employeeList.filter((emp) =>
     emp.toLowerCase().includes(filterQuery.toLowerCase())
   );
 
   const handleSubmit = async () => {
-    if (!selectedEmployee) {
+    const targetEmployee = selectedEmployee.trim();
+    if (!targetEmployee) {
       setDialog({
         visible: true,
         title: 'Employee Required',
-        message: 'Please select an employee to mark this file to.',
+        message: 'Please select or enter an employee name to mark this file to.',
         type: 'warning',
       });
       return;
@@ -65,17 +78,35 @@ export function EmployeeSelectModal({
 
     try {
       setIsSubmitting(true);
+
+      // 1. Check network connectivity: Queue in offline outbox if disconnected
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await OfflineSyncService.queueMarkEmployee(code, username, targetEmployee);
+        await FrequentEmployeeService.recordEmployeeUsage(division, targetEmployee);
+        setDialog({
+          visible: true,
+          title: 'Offline Action Saved',
+          message: 'Device is offline. File movement has been saved to the outbox and will automatically sync when reconnected.',
+          type: 'info',
+          onCloseAction: onSuccess,
+        });
+        return;
+      }
+
+      // 2. Dispatch online API request
       const response = await FileTrackerApi.markFileToEmployee(
         code,
         username,
-        selectedEmployee
+        targetEmployee
       );
 
       if (response === 'Ok') {
+        await FrequentEmployeeService.recordEmployeeUsage(division, targetEmployee);
         setDialog({
           visible: true,
           title: 'Movement Recorded',
-          message: 'File movement successfully recorded in system.',
+          message: 'File movement successfully recorded in WRD system.',
           type: 'success',
           onCloseAction: onSuccess,
         });
@@ -83,6 +114,7 @@ export function EmployeeSelectModal({
         onClose();
         onFileNotInSystem(code);
       } else {
+        await FrequentEmployeeService.recordEmployeeUsage(division, targetEmployee);
         setDialog({
           visible: true,
           title: 'System Response',
@@ -92,11 +124,16 @@ export function EmployeeSelectModal({
         });
       }
     } catch (error: any) {
+      // If network dropped mid-call, offer to queue locally
       setDialog({
         visible: true,
-        title: 'Submission Error',
-        message: error.message || 'Failed to submit file movement.',
-        type: 'error',
+        title: 'Connection Dropped',
+        message: 'Could not reach server. Queued in offline outbox to sync automatically.',
+        type: 'warning',
+        onCloseAction: async () => {
+          await OfflineSyncService.queueMarkEmployee(code, username, targetEmployee);
+          onSuccess();
+        },
       });
     } finally {
       setIsSubmitting(false);
@@ -162,11 +199,56 @@ export function EmployeeSelectModal({
             Department Division: <Text style={[styles.bold, { color: colors.text }]}>{division}</Text>
           </Text>
 
+          {/* Frequent Colleagues Quick Chips */}
+          {frequentEmployees.length > 0 && (
+            <View style={styles.frequentSection}>
+              <View style={styles.frequentHeader}>
+                <Sparkles size={13} color={colors.primary} />
+                <Text style={[styles.frequentLabel, { color: colors.textSecondary }]}>
+                  Frequent Colleagues:
+                </Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.frequentList}
+              >
+                {frequentEmployees.map((emp) => {
+                  const isSelected = selectedEmployee === emp;
+                  return (
+                    <TouchableOpacity
+                      key={emp}
+                      style={[
+                        styles.frequentChip,
+                        {
+                          backgroundColor: isSelected ? colors.primary : colors.surface,
+                          borderColor: isSelected ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => setSelectedEmployee(emp)}
+                    >
+                      <Text
+                        style={[
+                          styles.frequentChipText,
+                          { color: isSelected ? colors.white : colors.text },
+                        ]}
+                      >
+                        {emp}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Employee Filter Input */}
           <CustomInput
             placeholder="Search employee in this division..."
             value={filterQuery}
             onChangeText={setFilterQuery}
+            clearable
+            onClear={() => setFilterQuery('')}
             leftIcon={<Users size={18} color={colors.textSecondary} />}
             style={{ height: 44 }}
           />
@@ -178,9 +260,33 @@ export function EmployeeSelectModal({
               keyExtractor={(item) => item}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                  No employees found in {division}
-                </Text>
+                filterQuery.trim().length > 0 ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.unlistedEmployeeCard,
+                      {
+                        backgroundColor: colors.badgeBackground,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => setSelectedEmployee(filterQuery.trim())}
+                  >
+                    <UserPlus size={18} color={colors.primary} />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={[styles.unlistedTitle, { color: colors.primary }]}>
+                        Mark to unlisted employee:
+                      </Text>
+                      <Text style={[styles.unlistedName, { color: colors.text }]}>
+                        "{filterQuery.trim()}"
+                      </Text>
+                    </View>
+                    <Check size={16} color={colors.primary} />
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                    No employees found in {division}
+                  </Text>
+                )
               }
               renderItem={({ item }) => {
                 const isSelected = selectedEmployee === item;
@@ -299,10 +405,53 @@ const styles = StyleSheet.create({
   divisionLabel: {
     fontFamily: fontFamilies.regular,
     fontSize: 13,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   bold: {
     fontFamily: fontFamilies.bold,
+  },
+  frequentSection: {
+    marginBottom: 10,
+  },
+  frequentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 6,
+  },
+  frequentLabel: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: 12,
+  },
+  frequentList: {
+    gap: 8,
+    paddingBottom: 4,
+  },
+  frequentChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  frequentChipText: {
+    fontFamily: fontFamilies.medium,
+    fontSize: 13,
+  },
+  unlistedEmployeeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    margin: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  unlistedTitle: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: 12,
+  },
+  unlistedName: {
+    fontFamily: fontFamilies.bold,
+    fontSize: 14,
   },
   listContainer: {
     maxHeight: 180,
