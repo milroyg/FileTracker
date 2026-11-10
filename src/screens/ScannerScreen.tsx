@@ -38,7 +38,7 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   const divisionEmployees = directory?.employeesByDivision[division] || directory?.allEmployees || [];
 
   if (!permission) {
-    return <View style={styles.darkBackground} />;
+    return <View style={[styles.darkBackground, { backgroundColor: colors.black }]} />;
   }
 
   if (!permission.granted) {
@@ -114,7 +114,7 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.black }]}>
       <StatusBar barStyle="light-content" />
 
       {/* Fullscreen Camera Scanner */}
@@ -132,24 +132,24 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
         {/* Top Controls */}
         <View style={styles.topBar}>
           <TouchableOpacity
-            style={styles.controlCircle}
+            style={[styles.controlCircle, { backgroundColor: colors.overlayLight }]}
             onPress={() => navigation.goBack()}
             accessibilityLabel="Close scanner"
           >
-            <X size={24} color="#ffffff" />
+            <X size={24} color={colors.white} />
           </TouchableOpacity>
 
-          <Text style={styles.scannerHeaderTitle}>Scan File Code</Text>
+          <Text style={[styles.scannerHeaderTitle, { color: colors.white }]}>Scan File Code</Text>
 
           <TouchableOpacity
-            style={styles.controlCircle}
+            style={[styles.controlCircle, { backgroundColor: colors.overlayLight }]}
             onPress={() => setTorchEnabled((prev) => !prev)}
             accessibilityLabel="Toggle flashlight"
           >
             {torchEnabled ? (
-              <FlashlightOff size={22} color="#facc15" />
+              <FlashlightOff size={22} color={colors.warning} />
             ) : (
-              <Flashlight size={22} color="#ffffff" />
+              <Flashlight size={22} color={colors.white} />
             )}
           </TouchableOpacity>
         </View>
@@ -157,20 +157,25 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
         {/* Viewfinder Target Frame */}
         <View style={styles.viewfinderCenter}>
           <View style={styles.scanTargetBox}>
-            <View style={[styles.corner, styles.cornerTL]} />
-            <View style={[styles.corner, styles.cornerTR]} />
-            <View style={[styles.corner, styles.cornerBL]} />
-            <View style={[styles.corner, styles.cornerBR]} />
+            <View style={[styles.corner, styles.cornerTL, { borderColor: colors.scannerFrame }]} />
+            <View style={[styles.corner, styles.cornerTR, { borderColor: colors.scannerFrame }]} />
+            <View style={[styles.corner, styles.cornerBL, { borderColor: colors.scannerFrame }]} />
+            <View style={[styles.corner, styles.cornerBR, { borderColor: colors.scannerFrame }]} />
           </View>
-          <Text style={styles.instructionBanner}>
+          <Text
+            style={[
+              styles.instructionBanner,
+              { color: colors.white, backgroundColor: colors.scannerOverlay },
+            ]}
+          >
             Align QR or Barcode within the frame
           </Text>
         </View>
 
         {/* Bottom Division Info */}
         <View style={styles.bottomBar}>
-          <Text style={styles.bottomUserText}>
-            Logged in as <Text style={styles.bold}>{username}</Text> ({division})
+          <Text style={[styles.bottomUserText, { color: colors.headerSubtext }]}>
+            Logged in as <Text style={[styles.bold, { color: colors.white }]}>{username}</Text> ({division})
           </Text>
         </View>
       </SafeAreaView>
@@ -205,11 +210,9 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
   },
   darkBackground: {
     flex: 1,
-    backgroundColor: '#000000',
   },
   overlay: {
     flex: 1,
@@ -226,13 +229,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   scannerHeaderTitle: {
     fontFamily: fontFamilies.bold,
-    color: '#ffffff',
     fontSize: 18,
   },
   viewfinderCenter: {
@@ -249,7 +250,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 32,
     height: 32,
-    borderColor: '#4c73fd',
   },
   cornerTL: {
     top: 0,
@@ -281,8 +281,6 @@ const styles = StyleSheet.create({
   },
   instructionBanner: {
     fontFamily: fontFamilies.semiBold,
-    color: '#ffffff',
-    backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -295,12 +293,10 @@ const styles = StyleSheet.create({
   },
   bottomUserText: {
     fontFamily: fontFamilies.regular,
-    color: 'rgba(255,255,255,0.85)',
     fontSize: 13,
   },
   bold: {
     fontFamily: fontFamilies.bold,
-    color: '#ffffff',
   },
   permissionContainer: {
     flex: 1,

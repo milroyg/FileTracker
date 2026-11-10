@@ -83,8 +83,8 @@ export function EmployeeSelectModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.backdrop}>
-        <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
+        <View style={[styles.card, { backgroundColor: colors.cardBackground, shadowColor: colors.shadow }]}>
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.primary }]}>
               The file is marked to:
@@ -152,9 +152,7 @@ export function EmployeeSelectModal({
                       styles.employeeItem,
                       { borderBottomColor: colors.border },
                       isSelected && {
-                        backgroundColor: isDark
-                          ? 'rgba(76,115,253,0.18)'
-                          : '#eff6ff',
+                        backgroundColor: colors.badgeBackground,
                       },
                     ]}
                     onPress={() => setSelectedEmployee(item)}
@@ -201,7 +199,6 @@ export function EmployeeSelectModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -211,7 +208,6 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '100%',
     maxHeight: '85%',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,

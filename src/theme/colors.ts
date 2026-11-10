@@ -16,11 +16,28 @@ export interface ThemeColors {
   warning: string;
   white: string;
   black: string;
+  shadow: string;
   tableHeader: string;
   tableRowEven: string;
   tableRowOdd: string;
   badgeBackground: string;
   badgeText: string;
+  
+  // High-contrast Header & Banner Tokens
+  headerBackground: string;
+  headerText: string;
+  headerSubtext: string;
+  headerButtonBackground: string;
+  headerCardBackground: string;
+  
+  // Overlay & Modal Tokens
+  overlay: string;
+  overlayLight: string;
+
+  // Scanner & Camera Tokens
+  scannerFrame: string;
+  scannerOverlay: string;
+
   isDark: boolean;
 }
 
@@ -42,11 +59,25 @@ export const lightColors: ThemeColors = {
   warning: '#f59e0b',
   white: '#ffffff',
   black: '#000000',
+  shadow: '#000000',
   tableHeader: '#4c73fd',
   tableRowEven: '#ffffff',
   tableRowOdd: '#f8fafc',
   badgeBackground: '#eff6ff',
   badgeText: '#0C1DBB',
+  
+  headerBackground: '#0C1DBB',
+  headerText: '#ffffff',
+  headerSubtext: 'rgba(255, 255, 255, 0.85)',
+  headerButtonBackground: 'rgba(255, 255, 255, 0.18)',
+  headerCardBackground: 'rgba(255, 255, 255, 0.12)',
+
+  overlay: 'rgba(0, 0, 0, 0.6)',
+  overlayLight: 'rgba(0, 0, 0, 0.4)',
+
+  scannerFrame: '#4c73fd',
+  scannerOverlay: 'rgba(0, 0, 0, 0.6)',
+
   isDark: false,
 };
 
@@ -68,11 +99,25 @@ export const darkColors: ThemeColors = {
   warning: '#fbbf24',
   white: '#ffffff',
   black: '#000000',
+  shadow: '#000000',
   tableHeader: '#1e3a8a',
   tableRowEven: '#131b2e',
   tableRowOdd: '#0b1120',
   badgeBackground: 'rgba(76, 115, 253, 0.16)',
   badgeText: '#93c5fd',
+
+  headerBackground: '#131b2e',
+  headerText: '#f8fafc',
+  headerSubtext: '#94a3b8',
+  headerButtonBackground: '#1c263f',
+  headerCardBackground: '#1c263f',
+
+  overlay: 'rgba(0, 0, 0, 0.75)',
+  overlayLight: 'rgba(0, 0, 0, 0.5)',
+
+  scannerFrame: '#60a5fa',
+  scannerOverlay: 'rgba(0, 0, 0, 0.75)',
+
   isDark: true,
 };
 

@@ -33,9 +33,9 @@ export function MovementTimeline({ records }: MovementTimelineProps) {
     >
       {/* Table Header */}
       <View style={[styles.headerRow, { backgroundColor: colors.tableHeader }]}>
-        <Text style={[styles.headerCell, styles.cellDate]}>Date</Text>
-        <Text style={[styles.headerCell, styles.cellUser]}>Inward</Text>
-        <Text style={[styles.headerCell, styles.cellEmployee]}>Marked To</Text>
+        <Text style={[styles.headerCell, styles.cellDate, { color: colors.headerText }]}>Date</Text>
+        <Text style={[styles.headerCell, styles.cellUser, { color: colors.headerText }]}>Inward</Text>
+        <Text style={[styles.headerCell, styles.cellEmployee, { color: colors.headerText }]}>Marked To</Text>
       </View>
 
       {/* Table Body */}
@@ -87,7 +87,6 @@ const styles = StyleSheet.create({
   },
   headerCell: {
     fontFamily: fontFamilies.bold,
-    color: '#ffffff',
     fontSize: 14,
   },
   dataRow: {

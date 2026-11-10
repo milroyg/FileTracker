@@ -84,7 +84,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
       style={[
         styles.screen,
         {
-          backgroundColor: isDark ? colors.background : '#0C1DBB',
+          backgroundColor: isDark ? colors.background : colors.primary,
           paddingTop: insets.top,
           paddingBottom: insets.bottom,
         },
@@ -95,17 +95,25 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.cardBackground,
+              shadowColor: colors.shadow,
+            },
+          ]}
+        >
           {/* Logo & Branding */}
           <View style={styles.branding}>
             <Image
-              source={require('../../assets/logo.png')}
+              source={require('../../assets/android_logo.png')}
               style={styles.logo}
               resizeMode="contain"
             />
             <Text style={[styles.title, { color: colors.primary }]}>WRD FileTracker</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Government of Goa
+              Water Resources Department • Govt. of Goa
             </Text>
           </View>
 
@@ -164,7 +172,9 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           />
         </View>
 
-        <Text style={styles.versionText}>WRD File Tracker v2.0</Text>
+        <Text style={[styles.versionText, { color: isDark ? colors.textMuted : colors.headerSubtext }]}>
+          WRD FileTracker v2.0 • Government of Goa
+        </Text>
       </KeyboardAwareScrollView>
 
       {/* Division Picker Modal */}
@@ -174,7 +184,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         animationType="slide"
         onRequestClose={() => setDivisionModalVisible(false)}
       >
-        <View style={styles.modalBackdrop}>
+        <View style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]}>
           <View style={[styles.modalCard, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Select Division</Text>
@@ -201,7 +211,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
                     style={[
                       styles.divisionItem,
                       { borderBottomColor: colors.border },
-                      isSelected && { backgroundColor: isDark ? 'rgba(76,115,253,0.15)' : '#eff6ff' },
+                      isSelected && { backgroundColor: colors.badgeBackground },
                     ]}
                     onPress={() => {
                       setDivision(item);
@@ -243,7 +253,6 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 15,
@@ -256,17 +265,19 @@ const styles = StyleSheet.create({
   logo: {
     width: 72,
     height: 72,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   title: {
     fontFamily: fontFamilies.extraBold,
     fontSize: 26,
     letterSpacing: -0.5,
+    textAlign: 'center',
   },
   subtitle: {
     fontFamily: fontFamilies.medium,
-    fontSize: 14,
-    marginTop: 2,
+    fontSize: 13,
+    marginTop: 4,
+    textAlign: 'center',
   },
   fieldLabel: {
     fontFamily: fontFamilies.semiBold,
@@ -298,13 +309,11 @@ const styles = StyleSheet.create({
   versionText: {
     fontFamily: fontFamilies.semiBold,
     textAlign: 'center',
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
     marginTop: 24,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   modalCard: {

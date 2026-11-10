@@ -49,26 +49,27 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
         style={[
           styles.headerCard,
           {
-            backgroundColor: isDark ? colors.cardBackground : colors.primary,
+            backgroundColor: colors.headerBackground,
             borderBottomColor: colors.border,
             borderBottomWidth: isDark ? 1 : 0,
+            shadowColor: colors.shadow,
           },
         ]}
       >
         <View style={styles.topRow}>
           <View style={styles.userInfo}>
-            <Text style={styles.welcomeLabel}>Welcome,</Text>
-            <Text style={styles.usernameText}>{username}</Text>
+            <Text style={[styles.welcomeLabel, { color: colors.headerSubtext }]}>Welcome,</Text>
+            <Text style={[styles.usernameText, { color: colors.headerText }]}>{username}</Text>
             <View
               style={[
                 styles.divisionBadge,
-                { backgroundColor: isDark ? 'rgba(76,115,253,0.2)' : 'rgba(255,255,255,0.2)' },
+                { backgroundColor: colors.headerButtonBackground },
               ]}
             >
               <Text
                 style={[
                   styles.divisionBadgeText,
-                  { color: isDark ? colors.primary : '#ffffff' },
+                  { color: colors.headerText },
                 ]}
               >
                 {division}
@@ -79,39 +80,33 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
           <TouchableOpacity
             style={[
               styles.logoutBtn,
-              { backgroundColor: isDark ? colors.surface : 'rgba(255,255,255,0.18)' },
+              { backgroundColor: colors.headerButtonBackground },
             ]}
             onPress={handleLogout}
             accessibilityLabel="Logout"
           >
-            <LogOut size={20} color={isDark ? colors.textSecondary : '#ffffff'} />
+            <LogOut size={20} color={colors.headerText} />
           </TouchableOpacity>
         </View>
 
+        {/* Centered Logo & WRD FileTracker Title */}
         <View
           style={[
-            styles.brandingBanner,
-            { backgroundColor: isDark ? colors.surface : 'rgba(255,255,255,0.12)' },
+            styles.centerBranding,
+            { backgroundColor: colors.headerCardBackground },
           ]}
         >
           <Image
-            source={require('../../assets/logo.png')}
-            style={styles.logo}
+            source={require('../../assets/android_logo.png')}
+            style={styles.centerLogo}
             resizeMode="contain"
           />
-          <View>
-            <Text style={[styles.brandTitle, { color: isDark ? colors.text : '#ffffff' }]}>
-              WRD FileTracker
-            </Text>
-            <Text
-              style={[
-                styles.brandSubtitle,
-                { color: isDark ? colors.textSecondary : 'rgba(255,255,255,0.8)' },
-              ]}
-            >
-              Water Resources Department
-            </Text>
-          </View>
+          <Text style={[styles.brandTitle, { color: colors.headerText }]}>
+            WRD FileTracker
+          </Text>
+          <Text style={[styles.brandSubtitle, { color: colors.headerSubtext }]}>
+            Water Resources Department • Govt. of Goa
+          </Text>
         </View>
       </View>
 
@@ -128,13 +123,14 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
               backgroundColor: colors.cardBackground,
               borderColor: colors.border,
               borderLeftColor: colors.primary,
+              shadowColor: colors.shadow,
             },
           ]}
           activeOpacity={0.85}
           onPress={() => navigation.navigate('Scanner', { username, division })}
         >
           <View style={[styles.iconCircle, { backgroundColor: colors.primary }]}>
-            <QrCode size={36} color="#ffffff" />
+            <QrCode size={36} color={colors.white} />
           </View>
           <View style={styles.cardTextContainer}>
             <Text style={[styles.cardTitle, { color: colors.text }]}>
@@ -155,13 +151,14 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
               backgroundColor: colors.cardBackground,
               borderColor: colors.border,
               borderLeftColor: colors.accent,
+              shadowColor: colors.shadow,
             },
           ]}
           activeOpacity={0.85}
           onPress={() => navigation.navigate('Search')}
         >
           <View style={[styles.iconCircle, { backgroundColor: colors.accent }]}>
-            <Search size={36} color="#ffffff" />
+            <Search size={36} color={colors.white} />
           </View>
           <View style={styles.cardTextContainer}>
             <Text style={[styles.cardTitle, { color: colors.text }]}>
@@ -194,7 +191,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     padding: 24,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
@@ -204,7 +200,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   userInfo: {
     flex: 1,
@@ -212,12 +208,10 @@ const styles = StyleSheet.create({
   welcomeLabel: {
     fontFamily: fontFamilies.medium,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
   },
   usernameText: {
     fontFamily: fontFamilies.extraBold,
     fontSize: 22,
-    color: '#ffffff',
     letterSpacing: -0.3,
   },
   divisionBadge: {
@@ -235,24 +229,30 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 12,
   },
-  brandingBanner: {
-    flexDirection: 'row',
+  centerBranding: {
     alignItems: 'center',
-    borderRadius: 16,
-    padding: 12,
-    gap: 12,
+    justifyContent: 'center',
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    marginTop: 4,
   },
-  logo: {
-    width: 44,
-    height: 44,
+  centerLogo: {
+    width: 72,
+    height: 72,
+    marginBottom: 10,
   },
   brandTitle: {
-    fontFamily: fontFamilies.bold,
-    fontSize: 17,
+    fontFamily: fontFamilies.extraBold,
+    fontSize: 22,
+    letterSpacing: -0.4,
+    textAlign: 'center',
   },
   brandSubtitle: {
-    fontFamily: fontFamilies.regular,
+    fontFamily: fontFamilies.medium,
     fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
   },
   actionContainer: {
     padding: 20,
@@ -270,7 +270,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 18,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
     shadowRadius: 8,

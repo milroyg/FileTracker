@@ -61,7 +61,10 @@ export function CustomButton({
       onPress={isInteractive ? onPress : undefined}
       style={[
         styles.base,
-        { backgroundColor: getBackgroundColor() },
+        {
+          backgroundColor: getBackgroundColor(),
+          shadowColor: colors.shadow,
+        },
         variant === 'outline' && {
           borderWidth: 1.5,
           borderColor: colors.primary,
@@ -107,7 +110,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
     elevation: 2,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

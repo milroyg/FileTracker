@@ -116,9 +116,10 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
         style={[
           styles.header,
           {
-            backgroundColor: isDark ? colors.cardBackground : colors.primary,
+            backgroundColor: colors.headerBackground,
             borderBottomColor: colors.border,
             borderBottomWidth: isDark ? 1 : 0,
+            shadowColor: colors.shadow,
           },
         ]}
       >
@@ -126,7 +127,7 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
           <TouchableOpacity
             style={[
               styles.backBtn,
-              { backgroundColor: isDark ? colors.surface : 'rgba(255,255,255,0.18)' },
+              { backgroundColor: colors.headerButtonBackground },
             ]}
             onPress={() => {
               if (previousFilenameResults) {
@@ -136,9 +137,9 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
               }
             }}
           >
-            <ArrowLeft size={22} color={isDark ? colors.text : '#ffffff'} />
+            <ArrowLeft size={22} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? colors.text : '#ffffff' }]}>
+          <Text style={[styles.headerTitle, { color: colors.headerText }]}>
             WRD FileTracker
           </Text>
           <View style={{ width: 40 }} />
@@ -158,7 +159,7 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
                 style={[styles.searchButton, { backgroundColor: colors.primary }]}
                 onPress={() => executeSearch(query)}
               >
-                <Text style={styles.searchButtonText}>Search</Text>
+                <Text style={[styles.searchButtonText, { color: colors.white }]}>Search</Text>
               </TouchableOpacity>
             }
             style={styles.inputOverrides}
@@ -166,7 +167,7 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
           <Text
             style={[
               styles.helperText,
-              { color: isDark ? colors.textSecondary : 'rgba(255,255,255,0.85)' },
+              { color: colors.headerSubtext },
             ]}
           >
             *Enter code (e.g. 1024) or text subject (e.g. Tender). Tap result to inspect movements.
@@ -228,6 +229,7 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
                 {
                   backgroundColor: colors.cardBackground,
                   borderColor: colors.border,
+                  shadowColor: colors.shadow,
                 },
               ]}
               activeOpacity={0.7}
@@ -270,7 +272,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 20,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -308,7 +309,6 @@ const styles = StyleSheet.create({
   },
   searchButtonText: {
     fontFamily: fontFamilies.bold,
-    color: '#ffffff',
     fontSize: 13,
   },
   helperText: {
@@ -355,7 +355,6 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
