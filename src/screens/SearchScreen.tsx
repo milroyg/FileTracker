@@ -18,6 +18,7 @@ import { CustomInput } from '../components/common/CustomInput';
 import { MovementTimeline } from '../components/MovementTimeline';
 import { FileTrackerApi, MovementRecord, FileSearchResult } from '../api/fileTrackerApi';
 import { classifySearchQuery, SearchMode } from '../utils/queryClassifier';
+import { sortRecordsByLatestDate } from '../utils/dateUtils';
 
 export function SearchScreen({ route, navigation }: SearchScreenProps) {
   const insets = useSafeAreaInsets();
@@ -74,7 +75,7 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
     try {
       if (mode === 'CODE') {
         const records = await FileTrackerApi.searchByCode(trimmed);
-        setCodeResults(records);
+        setCodeResults(sortRecordsByLatestDate(records));
       } else {
         const files = await FileTrackerApi.searchByFileName(trimmed);
         setFileResults(files);

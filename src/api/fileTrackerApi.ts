@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { sortRecordsByLatestDate } from '../utils/dateUtils';
 
 export interface MovementRecord {
   dt: string;
@@ -129,7 +130,7 @@ export const FileTrackerApi = {
           });
         }
       }
-      return records;
+      return sortRecordsByLatestDate(records);
     });
   },
 
