@@ -90,7 +90,7 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
         {/* Centered Logo & WRD FileTracker Title */}
         <View style={styles.centerBranding}>
           <Image
-            source={require('../../assets/android_logo.png')}
+            source={require('../../assets/logo.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -211,8 +211,8 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 88,
-    height: 94,
-    marginBottom: 12,
+    height: 88,
+    marginBottom: 10,
   },
   brandTitle: {
     fontFamily: fontFamilies.extraBold,

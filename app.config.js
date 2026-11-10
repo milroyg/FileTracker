@@ -1,17 +1,19 @@
+const APP_VERSION = '2.0.0';
+
 module.exports = ({ config }) => {
   return {
     ...config,
     name: 'WRD File Tracker',
     slug: 'wrd-filetracker',
-    version: '2.0.0',
+    version: APP_VERSION,
     orientation: 'portrait',
-    icon: './assets/logo.png',
+    icon: './assets/icon.png',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     splash: {
-      image: './assets/logo.png',
+      image: './assets/splash-icon.png',
       resizeMode: 'contain',
-      backgroundColor: '#1e3a8a',
+      backgroundColor: '#ffffff',
     },
     ios: {
       supportsTablet: true,
@@ -26,8 +28,8 @@ module.exports = ({ config }) => {
     android: {
       package: 'com.wrdfiletracker',
       adaptiveIcon: {
-        foregroundImage: './assets/logo.png',
-        backgroundColor: '#1e3a8a',
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#ffffff',
       },
       permissions: [
         'android.permission.CAMERA',
@@ -71,6 +73,7 @@ module.exports = ({ config }) => {
     ],
     extra: {
       ...config?.extra,
+      version: APP_VERSION,
       eas: {
         projectId: '457fc8f5-6795-4407-b787-10765272a0eb',
       },

@@ -149,7 +149,7 @@ export function CustomDialog({
                       variant={isCancel ? 'outline' : isDestructive ? 'danger' : 'primary'}
                       style={[
                         styles.dialogButton,
-                        activeButtons.length > 1 && { flex: 1 },
+                        { flex: 1 },
                       ]}
                       onPress={() => {
                         if (btn.onPress) {
@@ -214,6 +214,8 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: 12,
     marginTop: 8,
   },

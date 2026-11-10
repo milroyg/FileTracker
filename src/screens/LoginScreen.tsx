@@ -20,6 +20,7 @@ import { CustomDialog, DialogType } from '../components/common/CustomDialog';
 import { useDirectory } from '../hooks/useDirectory';
 import { StorageService } from '../services/storageService';
 import { SecurityConfig } from '../config/security';
+import { APP_VERSION } from '../config/appInfo';
 
 export function LoginScreen({ navigation }: LoginScreenProps) {
   const insets = useSafeAreaInsets();
@@ -140,6 +141,11 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         >
           {/* Logo & Branding */}
           <View style={styles.branding}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={[styles.title, { color: colors.primary }]}>WRD FileTracker</Text>
           </View>
 
@@ -207,7 +213,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         </View>
 
         <Text style={[styles.versionText, { color: colors.textMuted }]}>
-          WRD FileTracker v2.0 • Government of Goa
+          WRD FileTracker v{APP_VERSION} • Government of Goa
         </Text>
       </KeyboardAwareScrollView>
 
