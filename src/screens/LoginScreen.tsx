@@ -23,7 +23,7 @@ import { SecurityConfig } from '../config/security';
 
 export function LoginScreen({ navigation }: LoginScreenProps) {
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { data: directory, isLoading: isDirLoading } = useDirectory();
 
   const [username, setUsername] = useState('');
@@ -84,7 +84,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
       style={[
         styles.screen,
         {
-          backgroundColor: isDark ? colors.background : colors.primary,
+          backgroundColor: colors.background,
           paddingTop: insets.top,
           paddingBottom: insets.bottom,
         },
@@ -100,6 +100,8 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
             styles.card,
             {
               backgroundColor: colors.cardBackground,
+              borderColor: colors.border,
+              borderWidth: 1,
               shadowColor: colors.shadow,
             },
           ]}
@@ -172,7 +174,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           />
         </View>
 
-        <Text style={[styles.versionText, { color: isDark ? colors.textMuted : colors.headerSubtext }]}>
+        <Text style={[styles.versionText, { color: colors.textMuted }]}>
           WRD FileTracker v2.0 • Government of Goa
         </Text>
       </KeyboardAwareScrollView>

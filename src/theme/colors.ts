@@ -29,6 +29,7 @@ export interface ThemeColors {
   headerSubtext: string;
   headerButtonBackground: string;
   headerCardBackground: string;
+  headerBorder: string;
   
   // Overlay & Modal Tokens
   overlay: string;
@@ -71,6 +72,7 @@ export const lightColors: ThemeColors = {
   headerSubtext: 'rgba(255, 255, 255, 0.85)',
   headerButtonBackground: 'rgba(255, 255, 255, 0.18)',
   headerCardBackground: 'rgba(255, 255, 255, 0.12)',
+  headerBorder: 'transparent',
 
   overlay: 'rgba(0, 0, 0, 0.6)',
   overlayLight: 'rgba(0, 0, 0, 0.4)',
@@ -111,6 +113,7 @@ export const darkColors: ThemeColors = {
   headerSubtext: '#94a3b8',
   headerButtonBackground: '#1c263f',
   headerCardBackground: '#1c263f',
+  headerBorder: '#22304d',
 
   overlay: 'rgba(0, 0, 0, 0.75)',
   overlayLight: 'rgba(0, 0, 0, 0.5)',

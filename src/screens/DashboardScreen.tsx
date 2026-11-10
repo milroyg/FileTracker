@@ -16,7 +16,7 @@ import { StorageService } from '../services/storageService';
 
 export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { username, division } = route.params;
 
   const handleLogout = () => {
@@ -50,8 +50,8 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
           styles.headerCard,
           {
             backgroundColor: colors.headerBackground,
-            borderBottomColor: colors.border,
-            borderBottomWidth: isDark ? 1 : 0,
+            borderBottomColor: colors.headerBorder,
+            borderBottomWidth: 1,
             shadowColor: colors.shadow,
           },
         ]}

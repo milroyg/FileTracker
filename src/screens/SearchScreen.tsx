@@ -20,7 +20,7 @@ import { classifySearchQuery, SearchMode } from '../utils/queryClassifier';
 
 export function SearchScreen({ route, navigation }: SearchScreenProps) {
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const initialCode = route?.params?.initialCode;
 
   const [query, setQuery] = useState(initialCode || '');
@@ -117,8 +117,8 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
           styles.header,
           {
             backgroundColor: colors.headerBackground,
-            borderBottomColor: colors.border,
-            borderBottomWidth: isDark ? 1 : 0,
+            borderBottomColor: colors.headerBorder,
+            borderBottomWidth: 1,
             shadowColor: colors.shadow,
           },
         ]}

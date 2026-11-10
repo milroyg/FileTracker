@@ -36,7 +36,7 @@ export function EmployeeSelectModal({
   onSuccess,
   onFileNotInSystem,
 }: EmployeeSelectModalProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [filterQuery, setFilterQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
