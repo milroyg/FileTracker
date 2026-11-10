@@ -18,6 +18,7 @@ import {
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { OfflineBanner } from './src/components/common/OfflineBanner';
 import { checkDeviceIntegrity } from './src/config/security';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 
@@ -59,6 +60,7 @@ function AppShell() {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={colors.cardBackground}
       />
+      <OfflineBanner />
       <NavigationContainer>
         <AppNavigator />
       </NavigationContainer>
