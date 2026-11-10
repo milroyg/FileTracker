@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -17,6 +16,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
 import { CustomInput } from '../components/common/CustomInput';
 import { CustomButton } from '../components/common/CustomButton';
+import { CustomDialog, DialogType } from '../components/common/CustomDialog';
 import { useDirectory } from '../hooks/useDirectory';
 import { StorageService } from '../services/storageService';
 import { SecurityConfig } from '../config/security';
@@ -32,6 +32,12 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
   const [divisionModalVisible, setDivisionModalVisible] = useState(false);
   const [divisionSearch, setDivisionSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dialog, setDialog] = useState<{
+    visible: boolean;
+    title: string;
+    message?: string;
+    type?: DialogType;
+  }>({ visible: false, title: '' });
 
   useEffect(() => {
     async function checkAutoLogin() {
@@ -56,12 +62,22 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
     const trimmedDiv = division.trim();
 
     if (!trimmedUser || !trimmedDiv || !password) {
-      Alert.alert('Incomplete Fields', 'Please enter username, division, and password.');
+      setDialog({
+        visible: true,
+        title: 'Incomplete Fields',
+        message: 'Please enter username, division, and password.',
+        type: 'warning',
+      });
       return;
     }
 
     if (password !== SecurityConfig.DEFAULT_ADMIN_PASSWORD) {
-      Alert.alert('Invalid Password', 'The credentials entered are incorrect.');
+      setDialog({
+        visible: true,
+        title: 'Invalid Password',
+        message: 'The credentials entered are incorrect.',
+        type: 'error',
+      });
       return;
     }
 
@@ -73,7 +89,12 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         division: trimmedDiv,
       });
     } catch (err: any) {
-      Alert.alert('Login Error', err.message || 'Unable to persist login session.');
+      setDialog({
+        visible: true,
+        title: 'Login Error',
+        message: err.message || 'Unable to persist login session.',
+        type: 'error',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -84,7 +105,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
       style={[
         styles.screen,
         {
-          backgroundColor: colors.background,
+          backgroundColor: colors.primary,
           paddingTop: insets.top,
           paddingBottom: insets.bottom,
         },
@@ -108,15 +129,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         >
           {/* Logo & Branding */}
           <View style={styles.branding}>
-            <Image
-              source={require('../../assets/android_logo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
             <Text style={[styles.title, { color: colors.primary }]}>WRD FileTracker</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Water Resources Department • Govt. of Goa
-            </Text>
           </View>
 
           {/* Username Input */}
@@ -187,7 +200,19 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         onRequestClose={() => setDivisionModalVisible(false)}
       >
         <View style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]}>
-          <View style={[styles.modalCard, { backgroundColor: colors.cardBackground }]}>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: colors.cardBackground,
+                borderColor: colors.border,
+                borderTopWidth: 1,
+                borderLeftWidth: 1,
+                borderRightWidth: 1,
+                shadowColor: colors.shadow,
+              },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Select Division</Text>
               <TouchableOpacity onPress={() => setDivisionModalVisible(false)}>
@@ -239,6 +264,15 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           </View>
         </View>
       </Modal>
+
+      {/* Themed Feedback Dialog */}
+      <CustomDialog
+        visible={dialog.visible}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+        onClose={() => setDialog({ visible: false, title: '' })}
+      />
     </View>
   );
 }

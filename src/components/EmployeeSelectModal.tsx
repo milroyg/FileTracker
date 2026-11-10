@@ -6,13 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  Alert,
 } from 'react-native';
 import { QrCode, User, Users, Check, X } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
 import { CustomButton } from './common/CustomButton';
 import { CustomInput } from './common/CustomInput';
+import { CustomDialog, DialogType } from './common/CustomDialog';
 import { FileTrackerApi } from '../api/fileTrackerApi';
 
 interface EmployeeSelectModalProps {
@@ -40,6 +40,13 @@ export function EmployeeSelectModal({
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [filterQuery, setFilterQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dialog, setDialog] = useState<{
+    visible: boolean;
+    title: string;
+    message?: string;
+    type?: DialogType;
+    onCloseAction?: () => void;
+  }>({ visible: false, title: '' });
 
   const filteredEmployees = employeeList.filter((emp) =>
     emp.toLowerCase().includes(filterQuery.toLowerCase())
@@ -47,7 +54,12 @@ export function EmployeeSelectModal({
 
   const handleSubmit = async () => {
     if (!selectedEmployee) {
-      Alert.alert('Required', 'Please select an employee to mark this file to.');
+      setDialog({
+        visible: true,
+        title: 'Employee Required',
+        message: 'Please select an employee to mark this file to.',
+        type: 'warning',
+      });
       return;
     }
 
@@ -60,31 +72,57 @@ export function EmployeeSelectModal({
       );
 
       if (response === 'Ok') {
-        Alert.alert('Success', 'File movement successfully recorded in system.');
-        onSuccess();
+        setDialog({
+          visible: true,
+          title: 'Movement Recorded',
+          message: 'File movement successfully recorded in system.',
+          type: 'success',
+          onCloseAction: onSuccess,
+        });
       } else if (response === 'File not in System') {
         onClose();
         onFileNotInSystem(code);
       } else {
-        Alert.alert('Response', response || 'File marked successfully.');
-        onSuccess();
+        setDialog({
+          visible: true,
+          title: 'System Response',
+          message: response || 'File marked successfully.',
+          type: 'info',
+          onCloseAction: onSuccess,
+        });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to submit file movement.');
+      setDialog({
+        visible: true,
+        title: 'Submission Error',
+        message: error.message || 'Failed to submit file movement.',
+        type: 'error',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Modal
+    <>
+      <Modal
       visible={visible}
       transparent
       animationType="fade"
       onRequestClose={onClose}
     >
       <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
-        <View style={[styles.card, { backgroundColor: colors.cardBackground, shadowColor: colors.shadow }]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.cardBackground,
+              borderColor: colors.border,
+              borderWidth: 1,
+              shadowColor: colors.shadow,
+            },
+          ]}
+        >
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.primary }]}>
               The file is marked to:
@@ -193,6 +231,20 @@ export function EmployeeSelectModal({
         </View>
       </View>
     </Modal>
+
+    {/* Themed Feedback Dialog */}
+    <CustomDialog
+      visible={dialog.visible}
+      title={dialog.title}
+      message={dialog.message}
+      type={dialog.type}
+      onClose={() => {
+        const action = dialog.onCloseAction;
+        setDialog({ visible: false, title: '' });
+        if (action) action();
+      }}
+    />
+  </>
   );
 }
 

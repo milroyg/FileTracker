@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
   BackHandler,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search, ArrowLeft, FileText, ChevronRight, History } from 'lucide-react-native';
@@ -30,36 +31,40 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
   const [fileResults, setFileResults] = useState<FileSearchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Safeguards to strictly prevent duplicate or overlapping search API requests
+  const isSearchingRef = useRef(false);
+  const lastSearchTimeRef = useRef(0);
+  const lastQueryRef = useRef('');
+  const hasMountedRef = useRef(false);
+
   // Drilldown back-stack: preserves filename results when inspecting a specific code
   const [previousFilenameResults, setPreviousFilenameResults] = useState<FileSearchResult[] | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (initialCode) {
-      executeSearch(initialCode);
-    }
-  }, [initialCode]);
-
-  useEffect(() => {
-    const onBackPress = () => {
-      if (previousFilenameResults) {
-        setFileResults(previousFilenameResults);
-        setPreviousFilenameResults(null);
-        setSelectedFileName(null);
-        setActiveMode('FILENAME');
-        return true;
-      }
-      return false;
-    };
-
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => subscription.remove();
-  }, [previousFilenameResults]);
-
-  const executeSearch = async (searchQuery: string) => {
-    const trimmed = searchQuery.trim();
+  const handleSearch = (searchQuery?: string) => {
+    const raw = searchQuery !== undefined ? searchQuery : query;
+    const trimmed = raw.trim();
     if (!trimmed) return;
 
+    const now = Date.now();
+    // Drop overlapping calls or duplicate requests within 800ms
+    if (
+      isSearchingRef.current ||
+      (lastQueryRef.current === trimmed && now - lastSearchTimeRef.current < 800)
+    ) {
+      console.log(`[SearchScreen] Ignored duplicate search trigger for "${trimmed}"`);
+      return;
+    }
+
+    lastSearchTimeRef.current = now;
+    lastQueryRef.current = trimmed;
+    isSearchingRef.current = true;
+    Keyboard.dismiss();
+
+    executeSearch(trimmed);
+  };
+
+  const executeSearch = async (trimmed: string) => {
     setIsLoading(true);
     setHasSearched(true);
 
@@ -80,15 +85,42 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
       setFileResults([]);
     } finally {
       setIsLoading(false);
+      // Brief cooldown before releasing search lock
+      setTimeout(() => {
+        isSearchingRef.current = false;
+      }, 300);
     }
   };
+
+  useEffect(() => {
+    if (initialCode && !hasMountedRef.current) {
+      hasMountedRef.current = true;
+      handleSearch(initialCode);
+    }
+  }, [initialCode]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (previousFilenameResults) {
+        setFileResults(previousFilenameResults);
+        setPreviousFilenameResults(null);
+        setSelectedFileName(null);
+        setActiveMode('FILENAME');
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, [previousFilenameResults]);
 
   const handleDrilldownCode = (file: FileSearchResult) => {
     setPreviousFilenameResults(fileResults);
     setSelectedFileName(file.filename);
     setQuery(file.code);
     setActiveMode('CODE');
-    executeSearch(file.code);
+    handleSearch(file.code);
   };
 
   const handleBackToFilenameList = () => {
@@ -151,16 +183,24 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
             placeholder="Enter Code or Filename"
             value={query}
             onChangeText={setQuery}
-            onSubmitEditing={() => executeSearch(query)}
+            onSubmitEditing={() => handleSearch()}
             returnKeyType="search"
             leftIcon={<Search size={18} color={colors.textSecondary} />}
+            onRightIconPress={() => handleSearch()}
             rightIcon={
-              <TouchableOpacity
-                style={[styles.searchButton, { backgroundColor: colors.primary }]}
-                onPress={() => executeSearch(query)}
+              <View
+                style={[
+                  styles.searchButton,
+                  { backgroundColor: colors.primary },
+                  isLoading && { opacity: 0.65 },
+                ]}
               >
-                <Text style={[styles.searchButtonText, { color: colors.white }]}>Search</Text>
-              </TouchableOpacity>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Text style={[styles.searchButtonText, { color: colors.white }]}>Search</Text>
+                )}
+              </View>
             }
             style={styles.inputOverrides}
           />

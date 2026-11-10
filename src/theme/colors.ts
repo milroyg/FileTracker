@@ -22,7 +22,7 @@ export interface ThemeColors {
   tableRowOdd: string;
   badgeBackground: string;
   badgeText: string;
-  
+
   // High-contrast Header & Banner Tokens
   headerBackground: string;
   headerText: string;
@@ -30,10 +30,15 @@ export interface ThemeColors {
   headerButtonBackground: string;
   headerCardBackground: string;
   headerBorder: string;
-  
+
   // Overlay & Modal Tokens
   overlay: string;
   overlayLight: string;
+
+  // Status Badge Background Tokens
+  successBadge: string;
+  errorBadge: string;
+  warningBadge: string;
 
   // Scanner & Camera Tokens
   scannerFrame: string;
@@ -43,13 +48,13 @@ export interface ThemeColors {
 }
 
 export const lightColors: ThemeColors = {
-  primary: '#0C1DBB',       // Goa WRD Royal Blue
-  primaryLight: '#4c73fd',
-  primaryDark: '#08137a',
+  primary: '#4c73fd',       // Goa WRD Blue 
+  primaryLight: '#60a5fa',
+  primaryDark: '#0C1DBB',
   accent: '#2563eb',
-  background: '#f8fafc',
+  background: '#ffffff',    // Pure White canvas 
   cardBackground: '#ffffff',
-  surface: '#f1f5f9',
+  surface: '#f8fafc',
   inputBackground: '#ffffff',
   text: '#0f172a',
   textSecondary: '#64748b',
@@ -65,17 +70,21 @@ export const lightColors: ThemeColors = {
   tableRowEven: '#ffffff',
   tableRowOdd: '#f8fafc',
   badgeBackground: '#eff6ff',
-  badgeText: '#0C1DBB',
-  
-  headerBackground: '#0C1DBB',
+  badgeText: '#4c73fd',
+
+  headerBackground: '#4c73fd',
   headerText: '#ffffff',
   headerSubtext: 'rgba(255, 255, 255, 0.85)',
-  headerButtonBackground: 'rgba(255, 255, 255, 0.18)',
-  headerCardBackground: 'rgba(255, 255, 255, 0.12)',
+  headerButtonBackground: 'rgba(255, 255, 255, 0.22)',
+  headerCardBackground: 'rgba(255, 255, 255, 0.15)',
   headerBorder: 'transparent',
 
   overlay: 'rgba(0, 0, 0, 0.6)',
   overlayLight: 'rgba(0, 0, 0, 0.4)',
+
+  successBadge: 'rgba(16, 185, 129, 0.12)',
+  errorBadge: 'rgba(239, 68, 68, 0.12)',
+  warningBadge: 'rgba(245, 158, 11, 0.12)',
 
   scannerFrame: '#4c73fd',
   scannerOverlay: 'rgba(0, 0, 0, 0.6)',
@@ -117,6 +126,10 @@ export const darkColors: ThemeColors = {
 
   overlay: 'rgba(0, 0, 0, 0.75)',
   overlayLight: 'rgba(0, 0, 0, 0.5)',
+
+  successBadge: 'rgba(52, 211, 153, 0.18)',
+  errorBadge: 'rgba(248, 113, 113, 0.18)',
+  warningBadge: 'rgba(251, 191, 36, 0.18)',
 
   scannerFrame: '#60a5fa',
   scannerOverlay: 'rgba(0, 0, 0, 0.75)',

@@ -12,9 +12,21 @@ export const apiClient = axios.create({
   },
 });
 
+apiClient.interceptors.request.use(
+  (config) => {
+    console.log(`[API Outgoing] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.params || '');
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`[API Response] ${response.status} from ${response.config.url}`);
+    return response;
+  },
   (error) => {
+    console.log(`[API Error] ${error.message} from ${error.config?.url}`);
     const message =
       error.response?.data?.message ||
       error.message ||

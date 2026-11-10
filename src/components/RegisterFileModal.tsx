@@ -6,13 +6,13 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Camera, FilePlus, X } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
 import { CustomButton } from './common/CustomButton';
+import { CustomDialog, DialogType } from './common/CustomDialog';
 import { FileTrackerApi } from '../api/fileTrackerApi';
 import { captureAndExtractText } from '../services/ocrService';
 
@@ -33,6 +33,13 @@ export function RegisterFileModal({
   const [subject, setSubject] = useState('');
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dialog, setDialog] = useState<{
+    visible: boolean;
+    title: string;
+    message?: string;
+    type?: DialogType;
+    onCloseAction?: () => void;
+  }>({ visible: false, title: '' });
 
   const handleCaptureOcr = async () => {
     try {
@@ -42,7 +49,12 @@ export function RegisterFileModal({
         setSubject(result.text);
       }
     } catch (error: any) {
-      Alert.alert('OCR Failed', error.message || 'Could not scan document text.');
+      setDialog({
+        visible: true,
+        title: 'OCR Failed',
+        message: error.message || 'Could not scan document text.',
+        type: 'error',
+      });
     } finally {
       setIsOcrProcessing(false);
     }
@@ -51,32 +63,58 @@ export function RegisterFileModal({
   const handleSubmit = async () => {
     const trimmed = subject.trim();
     if (!trimmed) {
-      Alert.alert('Required', 'Please enter or scan the full file subject.');
+      setDialog({
+        visible: true,
+        title: 'Subject Required',
+        message: 'Please enter or scan the full file subject.',
+        type: 'warning',
+      });
       return;
     }
 
     try {
       setIsSubmitting(true);
       const response = await FileTrackerApi.registerNewFile(code, trimmed);
-      Alert.alert('File Registered', response || 'File registered successfully in WRD system.');
-      onSuccess();
+      setDialog({
+        visible: true,
+        title: 'File Registered',
+        message: response || 'File registered successfully in WRD system.',
+        type: 'success',
+        onCloseAction: onSuccess,
+      });
     } catch (error: any) {
-      Alert.alert('Registration Error', error.message || 'Could not register file code.');
+      setDialog({
+        visible: true,
+        title: 'Registration Error',
+        message: error.message || 'Could not register file code.',
+        type: 'error',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
-        <View style={[styles.card, { backgroundColor: colors.cardBackground, shadowColor: colors.shadow }]}>
-          <View style={styles.header}>
+    <>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.cardBackground,
+                borderColor: colors.border,
+                borderWidth: 1,
+                shadowColor: colors.shadow,
+              },
+            ]}
+          >
+            <View style={styles.header}>
             <View style={styles.titleRow}>
               <FilePlus size={22} color={colors.primary} />
               <Text style={[styles.title, { color: colors.primary }]}>
@@ -162,6 +200,20 @@ export function RegisterFileModal({
         </View>
       </View>
     </Modal>
+
+    {/* Themed Feedback Dialog */}
+    <CustomDialog
+      visible={dialog.visible}
+      title={dialog.title}
+      message={dialog.message}
+      type={dialog.type}
+      onClose={() => {
+        const action = dialog.onCloseAction;
+        setDialog({ visible: false, title: '' });
+        if (action) action();
+      }}
+    />
+  </>
   );
 }
 

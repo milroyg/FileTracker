@@ -56,15 +56,18 @@ export function CustomInput({
           autoCapitalize="none"
           {...rest}
         />
-        {rightIcon && (
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={onRightIconPress}
-            style={styles.iconContainer}
-          >
-            {rightIcon}
-          </TouchableOpacity>
-        )}
+        {rightIcon &&
+          (onRightIconPress ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={onRightIconPress}
+              style={styles.iconContainer}
+            >
+              {rightIcon}
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.iconContainer}>{rightIcon}</View>
+          ))}
       </View>
       {error && (
         <Text style={[styles.errorText, { color: colors.error }]}>
