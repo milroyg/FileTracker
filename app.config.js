@@ -19,6 +19,7 @@ module.exports = ({ config }) => {
       supportsTablet: true,
       bundleIdentifier: 'com.wrdfiletracker',
       infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
         NSCameraUsageDescription:
           'WRD File Tracker requires camera access to scan file QR codes and extract file subjects via OCR.',
         NSPhotoLibraryUsageDescription:
