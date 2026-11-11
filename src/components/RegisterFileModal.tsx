@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { Camera, FilePlus, X } from 'lucide-react-native';
+import { Camera, FilePlus, X, Sparkles, QrCode } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
 import { CustomButton } from './common/CustomButton';
@@ -28,6 +28,33 @@ interface RegisterFileModalProps {
   onSuccess: () => void;
 }
 
+/**
+ * Sanitizes OCR and manual text before display and submission:
+ * - Strips HTML tags (<...>) and angle brackets (< >) to prevent Stored XSS
+ * - Strips dangerous delimiters (; used in barcodes, \ and backticks)
+ * - Disarms spreadsheet formula injection triggers at the start (=, +, -, @)
+ * - Normalizes newlines and whitespace
+ * - Truncates to max length
+ */
+export function sanitizeSubjectText(rawText: string, maxLength: number = 250): string {
+  if (!rawText) return '';
+  return rawText
+    // Strip HTML tags like <html>, <script>, <b>, etc.
+    .replace(/<[^>]*>/g, '')
+    // Strip angle brackets (<, >) and dangerous delimiters
+    .replace(/[<>;\\`]/g, ' ')
+    // Strip formula injection triggers if positioned at the beginning
+    .replace(/^[=+\-@]+/, '')
+    // Normalize newlines, tabs, and control characters
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/[\t\u00A0]/g, ' ')
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    // Collapse consecutive spaces and trim
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
 export function RegisterFileModal({
   visible,
   code,
@@ -37,6 +64,8 @@ export function RegisterFileModal({
   const { colors } = useTheme();
   const [subject, setSubject] = useState('');
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+  const [isOcrExtracted, setIsOcrExtracted] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialog, setDialog] = useState<{
     visible: boolean;
@@ -50,6 +79,8 @@ export function RegisterFileModal({
   useEffect(() => {
     if (visible) {
       setSubject('');
+      setIsOcrExtracted(false);
+      setIsInputFocused(false);
     }
   }, [visible, code]);
 
@@ -60,7 +91,20 @@ export function RegisterFileModal({
       if (!result) return; // User cancelled camera/cropper
 
       if (result.text) {
-        setSubject(result.text.slice(0, 250));
+        const cleaned = sanitizeSubjectText(result.text, 250);
+        if (!cleaned || !/[a-zA-Z0-9]/.test(cleaned)) {
+          setDialog({
+            visible: true,
+            title: 'Unclear Text',
+            message:
+              'Could not recognize readable text from the captured image. Please ensure the file title is clearly lit, or type the subject manually.',
+            type: 'warning',
+          });
+          return;
+        }
+
+        setSubject(cleaned);
+        setIsOcrExtracted(true);
       } else {
         setDialog({
           visible: true,
@@ -83,8 +127,23 @@ export function RegisterFileModal({
   };
 
   const handleSubmit = async () => {
-    const trimmed = subject.trim();
-    if (!trimmed) {
+    // 1. HTML / Script injection validation (OWASP Stored XSS defense)
+    const hasHtmlTags = /<[^>]*>|[<>]|javascript:|onerror=|onload=/i.test(subject);
+    if (hasHtmlTags) {
+      setDialog({
+        visible: true,
+        title: 'HTML Not Permitted',
+        message:
+          'HTML tags, script elements, and angle brackets (< >) are not allowed in file subjects. Please enter plain text only.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    const cleaned = sanitizeSubjectText(subject, 250);
+
+    // 2. Empty / Blank Validation
+    if (!cleaned) {
       setDialog({
         visible: true,
         title: 'Subject Required',
@@ -94,7 +153,8 @@ export function RegisterFileModal({
       return;
     }
 
-    if (trimmed.length < 3) {
+    // 2. Minimum Length Validation
+    if (cleaned.length < 3) {
       setDialog({
         visible: true,
         title: 'Subject Too Short',
@@ -104,25 +164,37 @@ export function RegisterFileModal({
       return;
     }
 
+    // 3. Meaningful Content Check (Must contain alphanumeric characters)
+    if (!/[a-zA-Z0-9]/.test(cleaned)) {
+      setDialog({
+        visible: true,
+        title: 'Invalid Subject',
+        message: 'File subject must contain valid letters or numbers.',
+        type: 'warning',
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
-      // 1. Check network connectivity: Queue in offline outbox if disconnected
+      // 4. Network Connectivity Check: Queue in offline outbox if disconnected
       const netState = await NetInfo.fetch();
       if (!netState.isConnected) {
-        await OfflineSyncService.queueRegisterFile(code, '', trimmed);
+        await OfflineSyncService.queueRegisterFile(code, '', cleaned);
         setDialog({
           visible: true,
           title: 'Offline Action Saved',
-          message: 'Device is offline. File registration has been saved to the outbox and will automatically sync when reconnected.',
+          message:
+            'Device is offline. File registration has been saved to the outbox and will automatically sync when reconnected.',
           type: 'info',
           onCloseAction: onSuccess,
         });
         return;
       }
 
-      // 2. Dispatch online API request
-      const response = await FileTrackerApi.registerNewFile(code, trimmed);
+      // 5. Dispatch online API request
+      const response = await FileTrackerApi.registerNewFile(code, cleaned);
       setDialog({
         visible: true,
         title: 'File Registered',
@@ -152,7 +224,7 @@ export function RegisterFileModal({
         onRequestClose={onClose}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoid}
         >
           <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
@@ -173,6 +245,7 @@ export function RegisterFileModal({
                   },
                 ]}
               >
+                {/* Header */}
                 <View style={styles.header}>
                   <View style={styles.titleRow}>
                     <FilePlus size={22} color={colors.primary} />
@@ -180,25 +253,70 @@ export function RegisterFileModal({
                       This is a new file.
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                  <TouchableOpacity
+                    onPress={onClose}
+                    style={styles.closeBtn}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
                     <X size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
 
-                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                  Code: <Text style={[styles.bold, { color: colors.text }]}>{code}</Text>
-                </Text>
-                <Text style={[styles.instruction, { color: colors.textSecondary }]}>
-                  Please enter the full file subject or use the OCR camera to scan the header banner:
-                </Text>
+                {/* Code Badge */}
+                <View style={[styles.codeBadge, { backgroundColor: colors.badgeBackground }]}>
+                  <QrCode size={15} color={colors.primary} />
+                  <Text style={[styles.codeBadgeText, { color: colors.primary }]}>
+                    File Code: <Text style={styles.bold}>{code}</Text>
+                  </Text>
+                </View>
 
-                {/* Multiline Input with OCR Camera Button */}
+                {/* Section Header: Label & OCR Action */}
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                    File Subject / Title:
+                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={[
+                      styles.ocrToolbarButton,
+                      {
+                        backgroundColor: colors.badgeBackground,
+                        borderColor: colors.primary,
+                      },
+                    ]}
+                    onPress={handleCaptureOcr}
+                    disabled={isOcrProcessing}
+                  >
+                    {isOcrProcessing ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <>
+                        <Camera size={14} color={colors.primary} />
+                        <Text style={[styles.ocrToolbarText, { color: colors.primary }]}>
+                          Scan with OCR
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {/* OCR Success Notice */}
+                {isOcrExtracted && (
+                  <View style={[styles.ocrNotice, { backgroundColor: colors.badgeBackground }]}>
+                    <Sparkles size={14} color={colors.primary} />
+                    <Text style={[styles.ocrNoticeText, { color: colors.primary }]} numberOfLines={1}>
+                      Text extracted via OCR. Please verify before saving.
+                    </Text>
+                  </View>
+                )}
+
+                {/* Dedicated Responsive Text Box */}
                 <View
                   style={[
-                    styles.inputWrapper,
+                    styles.textBoxContainer,
                     {
                       backgroundColor: colors.inputBackground,
-                      borderColor: colors.border,
+                      borderColor: isInputFocused ? colors.primary : colors.border,
                     },
                   ]}
                 >
@@ -217,36 +335,45 @@ export function RegisterFileModal({
                     maxLength={250}
                     autoCapitalize="sentences"
                     value={subject}
-                    onChangeText={setSubject}
+                    onChangeText={(val) => {
+                      setSubject(val);
+                      if (isOcrExtracted) setIsOcrExtracted(false);
+                    }}
+                    onFocus={() => setIsInputFocused(true)}
+                    onBlur={() => setIsInputFocused(false)}
                     textAlignVertical="top"
                   />
 
-                  <View style={styles.inputFooter}>
-                    <Text style={[styles.charCounter, { color: colors.textMuted }]}>
-                      {subject.length} / 250
-                    </Text>
-                  </View>
+                  {subject.length > 0 && (
+                    <TouchableOpacity
+                      style={styles.clearBtn}
+                      onPress={() => {
+                        setSubject('');
+                        setIsOcrExtracted(false);
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel="Clear subject input"
+                    >
+                      <X size={16} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
 
-                  <TouchableOpacity
-                    activeOpacity={0.7}
+                {/* Footer outside the box: Helper & Counter */}
+                <View style={styles.footerRow}>
+                  <Text style={[styles.helperText, { color: colors.textMuted }]}>
+                    Min 3 — max 250 characters
+                  </Text>
+                  <Text
                     style={[
-                      styles.ocrButton,
-                      { backgroundColor: colors.badgeBackground },
+                      styles.charCounter,
+                      {
+                        color: subject.length >= 240 ? colors.warning : colors.textMuted,
+                      },
                     ]}
-                    onPress={handleCaptureOcr}
-                    disabled={isOcrProcessing}
                   >
-                    {isOcrProcessing ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <View style={styles.ocrButtonContent}>
-                        <Camera size={18} color={colors.primary} />
-                        <Text style={[styles.ocrButtonText, { color: colors.primary }]}>
-                          Scan Subject via OCR
-                        </Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
+                    {subject.length} / 250
+                  </Text>
                 </View>
 
                 {/* Actions */}
@@ -315,7 +442,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   titleRow: {
     flexDirection: 'row',
@@ -329,56 +456,98 @@ const styles = StyleSheet.create({
   closeBtn: {
     padding: 4,
   },
-  subtitle: {
+  codeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 6,
+    marginBottom: 14,
+  },
+  codeBadgeText: {
     fontFamily: fontFamilies.medium,
-    fontSize: 14,
-    marginBottom: 6,
+    fontSize: 13,
   },
   bold: {
     fontFamily: fontFamilies.bold,
   },
-  instruction: {
-    fontFamily: fontFamilies.regular,
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionLabel: {
+    fontFamily: fontFamilies.semiBold,
     fontSize: 13,
-    marginBottom: 12,
-    lineHeight: 18,
   },
-  inputWrapper: {
-    borderWidth: 1.5,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 16,
-  },
-  textArea: {
-    height: 90,
-    fontSize: 15,
-    textAlignVertical: 'top',
-  },
-  inputFooter: {
-    alignItems: 'flex-end',
-    paddingVertical: 2,
-  },
-  charCounter: {
-    fontFamily: fontFamilies.regular,
-    fontSize: 11,
-  },
-  ocrButton: {
+  ocrToolbarButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    marginTop: 8,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
   },
-  ocrButtonContent: {
+  ocrToolbarText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: 12,
+  },
+  ocrNotice: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  ocrButtonText: {
-    fontFamily: fontFamilies.semiBold,
-    fontSize: 13,
+  ocrNoticeText: {
+    fontFamily: fontFamilies.medium,
+    fontSize: 12,
+    flex: 1,
+  },
+  textBoxContainer: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
+    minHeight: 110,
+    position: 'relative',
+  },
+  textArea: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlignVertical: 'top',
+    minHeight: 90,
+    padding: 0,
+    paddingRight: 24,
+  },
+  clearBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 4,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 16,
+    paddingHorizontal: 2,
+  },
+  helperText: {
+    fontFamily: fontFamilies.regular,
+    fontSize: 11,
+  },
+  charCounter: {
+    fontFamily: fontFamilies.medium,
+    fontSize: 11,
   },
   actionRow: {
     flexDirection: 'row',

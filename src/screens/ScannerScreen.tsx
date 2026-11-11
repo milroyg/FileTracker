@@ -226,14 +226,25 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
     }, 1500);
   };
 
+  const navigateBackToDashboard = () => {
+    clearResumeTimer();
+    setEmployeeModalVisible(false);
+    setRegisterModalVisible(false);
+    setManualModalVisible(false);
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Dashboard', { username, division });
+    }
+  };
+
   const handleEmployeeModalClose = () => {
     setEmployeeModalVisible(false);
     resumeScanning();
   };
 
   const handleEmployeeSubmitSuccess = () => {
-    setEmployeeModalVisible(false);
-    resumeScanning();
+    navigateBackToDashboard();
   };
 
   const handleFileNotInSystem = (code: string) => {
@@ -252,10 +263,7 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   };
 
   const handleRegisterSuccess = () => {
-    clearResumeTimer();
-    setRegisterModalVisible(false);
-    // Transition cleanly back to the employee modal to mark the newly registered file
-    setEmployeeModalVisible(true);
+    navigateBackToDashboard();
   };
 
   return (
