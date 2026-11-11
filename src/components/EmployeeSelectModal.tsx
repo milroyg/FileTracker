@@ -48,6 +48,7 @@ export function EmployeeSelectModal({
   const [filterQuery, setFilterQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [frequentEmployees, setFrequentEmployees] = useState<string[]>([]);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [dialog, setDialog] = useState<{
     visible: boolean;
     title: string;
@@ -55,6 +56,29 @@ export function EmployeeSelectModal({
     type?: DialogType;
     onCloseAction?: () => void;
   }>({ visible: false, title: '' });
+
+  // Track keyboard visibility to adapt modal density dynamically
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // Reset search filter on each modal opening
+  useEffect(() => {
+    if (visible) {
+      setFilterQuery('');
+    }
+  }, [visible, code]);
 
   // Load frequently marked colleagues for this division
   useEffect(() => {
@@ -159,194 +183,218 @@ export function EmployeeSelectModal({
         onRequestClose={onClose}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={[styles.backdrop, { backgroundColor: colors.overlay }]}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoid}
         >
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: colors.cardBackground,
-                borderColor: colors.border,
-                borderWidth: 1,
-                shadowColor: colors.shadow,
-              },
-            ]}
-          >
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: colors.primary }]}>
-                The file is marked to:
-              </Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Readonly Info Badges */}
-            <View style={styles.infoRow}>
-              <View
-                style={[
-                  styles.infoBadge,
-                  { backgroundColor: colors.badgeBackground },
-                ]}
-              >
-                <QrCode size={16} color={colors.primary} />
-                <Text style={[styles.infoBadgeText, { color: colors.primary }]} numberOfLines={1}>
-                  Code: {code}
+          <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={Keyboard.dismiss}
+            />
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: colors.cardBackground,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  shadowColor: colors.shadow,
+                },
+                isKeyboardVisible && styles.cardKeyboardActive,
+              ]}
+            >
+              <View style={[styles.header, isKeyboardVisible && { marginBottom: 8 }]}>
+                <Text style={[styles.title, { color: colors.primary }]}>
+                  The file is marked to:
                 </Text>
+                <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                  <X size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
               </View>
-              <View
-                style={[
-                  styles.infoBadge,
-                  { backgroundColor: colors.badgeBackground },
-                ]}
-              >
-                <User size={16} color={colors.primary} />
-                <Text style={[styles.infoBadgeText, { color: colors.primary }]} numberOfLines={1}>
-                  By: {username}
-                </Text>
-              </View>
-            </View>
 
-            <Text style={[styles.divisionLabel, { color: colors.textSecondary }]}>
-              Department Division: <Text style={[styles.bold, { color: colors.text }]}>{division}</Text>
-            </Text>
-
-            {/* Frequent Colleagues Quick Chips */}
-            {frequentEmployees.length > 0 && (
-              <View style={styles.frequentSection}>
-                <View style={styles.frequentHeader}>
-                  <Sparkles size={13} color={colors.primary} />
-                  <Text style={[styles.frequentLabel, { color: colors.textSecondary }]}>
-                    Frequent Colleagues:
+              {/* Readonly Info Badges */}
+              <View style={[styles.infoRow, isKeyboardVisible && { marginBottom: 8 }]}>
+                <View
+                  style={[
+                    styles.infoBadge,
+                    { backgroundColor: colors.badgeBackground },
+                  ]}
+                >
+                  <QrCode size={16} color={colors.primary} />
+                  <Text style={[styles.infoBadgeText, { color: colors.primary }]} numberOfLines={1}>
+                    Code: {code}
                   </Text>
                 </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.frequentList}
+                <View
+                  style={[
+                    styles.infoBadge,
+                    { backgroundColor: colors.badgeBackground },
+                  ]}
                 >
-                  {frequentEmployees.map((emp) => {
-                    const isSelected = selectedEmployee === emp;
-                    return (
+                  <User size={16} color={colors.primary} />
+                  <Text style={[styles.infoBadgeText, { color: colors.primary }]} numberOfLines={1}>
+                    By: {username}
+                  </Text>
+                </View>
+              </View>
+
+              {!isKeyboardVisible && (
+                <Text style={[styles.divisionLabel, { color: colors.textSecondary }]}>
+                  Department Division: <Text style={[styles.bold, { color: colors.text }]}>{division}</Text>
+                </Text>
+              )}
+
+              {/* Frequent Colleagues Quick Chips (collapsed while typing to preserve search visibility) */}
+              {!isKeyboardVisible && filterQuery.trim().length === 0 && frequentEmployees.length > 0 && (
+                <View style={styles.frequentSection}>
+                  <View style={styles.frequentHeader}>
+                    <Sparkles size={13} color={colors.primary} />
+                    <Text style={[styles.frequentLabel, { color: colors.textSecondary }]}>
+                      Frequent Colleagues:
+                    </Text>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.frequentList}
+                  >
+                    {frequentEmployees.map((emp) => {
+                      const isSelected = selectedEmployee === emp;
+                      return (
+                        <TouchableOpacity
+                          key={emp}
+                          style={[
+                            styles.frequentChip,
+                            {
+                              backgroundColor: isSelected ? colors.primary : colors.surface,
+                              borderColor: isSelected ? colors.primary : colors.border,
+                            },
+                          ]}
+                          onPress={() => setSelectedEmployee(emp)}
+                        >
+                          <Text
+                            style={[
+                              styles.frequentChipText,
+                              { color: isSelected ? colors.white : colors.text },
+                            ]}
+                          >
+                            {emp}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* Employee Filter Input */}
+              <CustomInput
+                placeholder="Search employee in this division..."
+                value={filterQuery}
+                onChangeText={setFilterQuery}
+                clearable
+                onClear={() => setFilterQuery('')}
+                leftIcon={<Users size={18} color={colors.textSecondary} />}
+                style={{ height: 44, marginBottom: 8 }}
+              />
+
+              {/* Employee List */}
+              <View
+                style={[
+                  styles.listContainer,
+                  {
+                    borderColor: colors.border,
+                    maxHeight: isKeyboardVisible ? 130 : 180,
+                  },
+                ]}
+              >
+                <FlatList
+                  data={filteredEmployees}
+                  keyExtractor={(item) => item}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag"
+                  ListEmptyComponent={
+                    filterQuery.trim().length > 0 ? (
                       <TouchableOpacity
-                        key={emp}
                         style={[
-                          styles.frequentChip,
+                          styles.unlistedEmployeeCard,
                           {
-                            backgroundColor: isSelected ? colors.primary : colors.surface,
-                            borderColor: isSelected ? colors.primary : colors.border,
+                            backgroundColor: colors.badgeBackground,
+                            borderColor: colors.border,
                           },
                         ]}
-                        onPress={() => setSelectedEmployee(emp)}
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          setSelectedEmployee(filterQuery.trim());
+                        }}
+                      >
+                        <UserPlus size={18} color={colors.primary} />
+                        <View style={{ flex: 1, marginLeft: 10 }}>
+                          <Text style={[styles.unlistedTitle, { color: colors.primary }]}>
+                            Mark to unlisted employee:
+                          </Text>
+                          <Text style={[styles.unlistedName, { color: colors.text }]}>
+                            "{filterQuery.trim()}"
+                          </Text>
+                        </View>
+                        <Check size={16} color={colors.primary} />
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                        No employees found in {division}
+                      </Text>
+                    )
+                  }
+                  renderItem={({ item }) => {
+                    const isSelected = selectedEmployee === item;
+                    return (
+                      <TouchableOpacity
+                        style={[
+                          styles.employeeItem,
+                          { borderBottomColor: colors.border },
+                          isSelected && {
+                            backgroundColor: colors.badgeBackground,
+                          },
+                        ]}
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          setSelectedEmployee(item);
+                        }}
                       >
                         <Text
                           style={[
-                            styles.frequentChipText,
-                            { color: isSelected ? colors.white : colors.text },
+                            styles.employeeName,
+                            {
+                              color: isSelected ? colors.primary : colors.text,
+                              fontFamily: isSelected ? fontFamilies.bold : fontFamilies.regular,
+                            },
                           ]}
                         >
-                          {emp}
+                          {item}
                         </Text>
+                        {isSelected && <Check size={18} color={colors.primary} />}
                       </TouchableOpacity>
                     );
-                  })}
-                </ScrollView>
+                  }}
+                />
               </View>
-            )}
 
-            {/* Employee Filter Input */}
-            <CustomInput
-              placeholder="Search employee in this division..."
-              value={filterQuery}
-              onChangeText={setFilterQuery}
-              clearable
-              onClear={() => setFilterQuery('')}
-              leftIcon={<Users size={18} color={colors.textSecondary} />}
-              style={{ height: 44 }}
-            />
-
-            {/* Employee List */}
-            <View style={[styles.listContainer, { borderColor: colors.border }]}>
-              <FlatList
-                data={filteredEmployees}
-                keyExtractor={(item) => item}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-                ListEmptyComponent={
-                  filterQuery.trim().length > 0 ? (
-                    <TouchableOpacity
-                      style={[
-                        styles.unlistedEmployeeCard,
-                        {
-                          backgroundColor: colors.badgeBackground,
-                          borderColor: colors.border,
-                        },
-                      ]}
-                      onPress={() => setSelectedEmployee(filterQuery.trim())}
-                    >
-                      <UserPlus size={18} color={colors.primary} />
-                      <View style={{ flex: 1, marginLeft: 10 }}>
-                        <Text style={[styles.unlistedTitle, { color: colors.primary }]}>
-                          Mark to unlisted employee:
-                        </Text>
-                        <Text style={[styles.unlistedName, { color: colors.text }]}>
-                          "{filterQuery.trim()}"
-                        </Text>
-                      </View>
-                      <Check size={16} color={colors.primary} />
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                      No employees found in {division}
-                    </Text>
-                  )
-                }
-                renderItem={({ item }) => {
-                  const isSelected = selectedEmployee === item;
-                  return (
-                    <TouchableOpacity
-                      style={[
-                        styles.employeeItem,
-                        { borderBottomColor: colors.border },
-                        isSelected && {
-                          backgroundColor: colors.badgeBackground,
-                        },
-                      ]}
-                      onPress={() => setSelectedEmployee(item)}
-                    >
-                      <Text
-                        style={[
-                          styles.employeeName,
-                          {
-                            color: isSelected ? colors.primary : colors.text,
-                            fontFamily: isSelected ? fontFamilies.bold : fontFamilies.regular,
-                          },
-                        ]}
-                      >
-                        {item}
-                      </Text>
-                      {isSelected && <Check size={18} color={colors.primary} />}
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            </View>
-
-            {/* Actions */}
-            <View style={styles.actionRow}>
-              <CustomButton
-                title="Cancel"
-                variant="outline"
-                style={styles.actionBtn}
-                onPress={onClose}
-              />
-              <CustomButton
-                title="Submit"
-                loading={isSubmitting}
-                style={styles.actionBtn}
-                onPress={handleSubmit}
-              />
+              {/* Actions */}
+              <View style={styles.actionRow}>
+                <CustomButton
+                  title="Cancel"
+                  variant="outline"
+                  style={styles.actionBtn}
+                  onPress={onClose}
+                />
+                <CustomButton
+                  title="Submit"
+                  loading={isSubmitting}
+                  style={styles.actionBtn}
+                  onPress={handleSubmit}
+                />
+              </View>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -369,21 +417,29 @@ export function EmployeeSelectModal({
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoid: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
   },
   card: {
     borderRadius: 20,
     padding: 20,
     width: '100%',
-    maxHeight: '85%',
+    maxWidth: 480,
+    maxHeight: '90%',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 8,
+  },
+  cardKeyboardActive: {
+    padding: 14,
+    paddingBottom: 16,
   },
   header: {
     flexDirection: 'row',

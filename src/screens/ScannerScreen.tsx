@@ -265,7 +265,7 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
       {/* Fullscreen Camera Scanner */}
       {isFocused && (
         <CameraView
-          style={StyleSheet.absoluteFill}
+          style={styles.camera}
           enableTorch={torchEnabled}
           barcodeScannerSettings={{
             barcodeTypes: ['qr', 'code128', 'code39', 'ean13', 'ean8', 'pdf417'],
@@ -385,7 +385,7 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
             </Text>
 
             <CustomInput
-              placeholder="e.g. 1024 or WRD-2024-88"
+              placeholder="e.g. 10024"
               value={manualCode}
               onChangeText={setManualCode}
               clearable
@@ -462,6 +462,13 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  camera: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   darkBackground: {
     flex: 1,
