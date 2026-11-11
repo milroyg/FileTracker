@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -7,6 +7,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { Camera, FilePlus, X } from 'lucide-react-native';
@@ -43,24 +46,34 @@ export function RegisterFileModal({
     onCloseAction?: () => void;
   }>({ visible: false, title: '' });
 
+  // Reset subject input when modal opens for a new file code
+  useEffect(() => {
+    if (visible) {
+      setSubject('');
+    }
+  }, [visible, code]);
+
   const handleCaptureOcr = async () => {
     try {
       setIsOcrProcessing(true);
       const result = await captureAndExtractText();
-      if (result && result.text) {
+      if (!result) return; // User cancelled camera/cropper
+
+      if (result.text) {
         setSubject(result.text.slice(0, 250));
       } else {
         setDialog({
           visible: true,
-          title: 'Text Not Detected',
-          message: 'Could not extract text automatically from image. Please type the file subject manually.',
+          title: 'Photo Captured',
+          message:
+            'Photo captured successfully. On-device text recognition requires an EAS Development or Standalone build. Please type the file subject manually into the box.',
           type: 'info',
         });
       }
     } catch (error: any) {
       setDialog({
         visible: true,
-        title: 'OCR Unavailable',
+        title: 'OCR Scanner',
         message: error.message || 'Please type the file subject manually.',
         type: 'info',
       });
@@ -135,134 +148,155 @@ export function RegisterFileModal({
         visible={visible}
         transparent
         animationType="fade"
+        statusBarTranslucent
         onRequestClose={onClose}
       >
-        <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: colors.cardBackground,
-                borderColor: colors.border,
-                borderWidth: 1,
-                shadowColor: colors.shadow,
-              },
-            ]}
-          >
-            <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <FilePlus size={22} color={colors.primary} />
-              <Text style={[styles.title, { color: colors.primary }]}>
-                This is a new file.
-              </Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Code: <Text style={[styles.bold, { color: colors.text }]}>{code}</Text>
-          </Text>
-          <Text style={[styles.instruction, { color: colors.textSecondary }]}>
-            Please enter the full file subject or use the OCR camera to scan the header banner:
-          </Text>
-
-          {/* Multiline Input with OCR Camera Button */}
-          <View
-            style={[
-              styles.inputWrapper,
-              {
-                backgroundColor: colors.inputBackground,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <TextInput
-              style={[
-                styles.textArea,
-                {
-                  color: colors.text,
-                  fontFamily: fontFamilies.regular,
-                },
-              ]}
-              placeholder="e.g. Construction of retaining wall at Division 11..."
-              placeholderTextColor={colors.textMuted}
-              multiline
-              numberOfLines={4}
-              maxLength={250}
-              autoCapitalize="sentences"
-              value={subject}
-              onChangeText={setSubject}
-              textAlignVertical="top"
-            />
-
-            <View style={styles.inputFooter}>
-              <Text style={[styles.charCounter, { color: colors.textMuted }]}>
-                {subject.length} / 250
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[
-                styles.ocrButton,
-                { backgroundColor: colors.badgeBackground },
-              ]}
-              onPress={handleCaptureOcr}
-              disabled={isOcrProcessing}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardAvoid}
+        >
+          <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
             >
-              {isOcrProcessing ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <View style={styles.ocrButtonContent}>
-                  <Camera size={18} color={colors.primary} />
-                  <Text style={[styles.ocrButtonText, { color: colors.primary }]}>
-                    Scan Subject via OCR
-                  </Text>
+              <View
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: colors.cardBackground,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    shadowColor: colors.shadow,
+                  },
+                ]}
+              >
+                <View style={styles.header}>
+                  <View style={styles.titleRow}>
+                    <FilePlus size={22} color={colors.primary} />
+                    <Text style={[styles.title, { color: colors.primary }]}>
+                      This is a new file.
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                    <X size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
                 </View>
-              )}
-            </TouchableOpacity>
-          </View>
 
-          {/* Actions */}
-          <View style={styles.actionRow}>
-            <CustomButton
-              title="Cancel"
-              variant="outline"
-              style={styles.actionBtn}
-              onPress={onClose}
-            />
-            <CustomButton
-              title="Save & Proceed"
-              loading={isSubmitting}
-              style={styles.actionBtn}
-              onPress={handleSubmit}
-            />
-          </View>
-        </View>
-      </View>
-    </Modal>
+                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                  Code: <Text style={[styles.bold, { color: colors.text }]}>{code}</Text>
+                </Text>
+                <Text style={[styles.instruction, { color: colors.textSecondary }]}>
+                  Please enter the full file subject or use the OCR camera to scan the header banner:
+                </Text>
 
-    {/* Themed Feedback Dialog */}
-    <CustomDialog
-      visible={dialog.visible}
-      title={dialog.title}
-      message={dialog.message}
-      type={dialog.type}
-      onClose={() => {
-        const action = dialog.onCloseAction;
-        setDialog({ visible: false, title: '' });
-        if (action) action();
-      }}
-    />
-  </>
+                {/* Multiline Input with OCR Camera Button */}
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    {
+                      backgroundColor: colors.inputBackground,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <TextInput
+                    style={[
+                      styles.textArea,
+                      {
+                        color: colors.text,
+                        fontFamily: fontFamilies.regular,
+                      },
+                    ]}
+                    placeholder="e.g. Construction of retaining wall at Division 11..."
+                    placeholderTextColor={colors.textMuted}
+                    multiline
+                    numberOfLines={4}
+                    maxLength={250}
+                    autoCapitalize="sentences"
+                    value={subject}
+                    onChangeText={setSubject}
+                    textAlignVertical="top"
+                  />
+
+                  <View style={styles.inputFooter}>
+                    <Text style={[styles.charCounter, { color: colors.textMuted }]}>
+                      {subject.length} / 250
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={[
+                      styles.ocrButton,
+                      { backgroundColor: colors.badgeBackground },
+                    ]}
+                    onPress={handleCaptureOcr}
+                    disabled={isOcrProcessing}
+                  >
+                    {isOcrProcessing ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <View style={styles.ocrButtonContent}>
+                        <Camera size={18} color={colors.primary} />
+                        <Text style={[styles.ocrButtonText, { color: colors.primary }]}>
+                          Scan Subject via OCR
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {/* Actions */}
+                <View style={styles.actionRow}>
+                  <CustomButton
+                    title="Cancel"
+                    variant="outline"
+                    style={styles.cancelBtn}
+                    onPress={onClose}
+                  />
+                  <CustomButton
+                    title="Save & Proceed"
+                    loading={isSubmitting}
+                    style={styles.submitBtn}
+                    textStyle={styles.submitBtnText}
+                    onPress={handleSubmit}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Themed Feedback Dialog */}
+      <CustomDialog
+        visible={dialog.visible}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+        onClose={() => {
+          const action = dialog.onCloseAction;
+          setDialog({ visible: false, title: '' });
+          if (action) action();
+        }}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoid: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -271,6 +305,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     width: '100%',
+    maxWidth: 460,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
@@ -348,9 +383,20 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     gap: 12,
+    alignItems: 'center',
+    marginTop: 4,
   },
-  actionBtn: {
+  cancelBtn: {
     flex: 1,
     height: 48,
+    paddingHorizontal: 8,
+  },
+  submitBtn: {
+    flex: 1.6,
+    height: 48,
+    paddingHorizontal: 10,
+  },
+  submitBtnText: {
+    fontSize: 15,
   },
 });

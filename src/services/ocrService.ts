@@ -40,14 +40,16 @@ export async function captureAndExtractText(): Promise<OcrResult | null> {
   // 3. Attempt MLKit Text Recognition if native module is present
   let recognizedText = '';
   try {
-    // Dynamic import to prevent crash in Expo Go / web if native module is not linked
-    const MLKitTextRecognition = require('@react-native-ml-kit/text-recognition').default;
-    if (MLKitTextRecognition?.recognize) {
-      const result = await MLKitTextRecognition.recognize(manipulated.uri);
-      recognizedText = result.text?.trim() || '';
+    const { recognizeText } = require('@infinitered/react-native-mlkit-text-recognition');
+    if (typeof recognizeText === 'function') {
+      const result = await recognizeText(manipulated.uri);
+      recognizedText = result?.text?.trim() || '';
     }
   } catch (err) {
-    console.warn('MLKit native module not found or failed, falling back to manual entry:', err);
+    console.warn(
+      'MLKit native module not found or running in Expo Go (requires EAS/development build):',
+      err
+    );
   }
 
   return {

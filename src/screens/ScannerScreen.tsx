@@ -25,6 +25,16 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   const { colors } = useTheme();
   const { username, division } = route.params;
   const { data: directory } = useDirectory();
+  const [isFocused, setIsFocused] = useState(true);
+
+  useEffect(() => {
+    const unsubscribeFocus = navigation.addListener('focus', () => setIsFocused(true));
+    const unsubscribeBlur = navigation.addListener('blur', () => setIsFocused(false));
+    return () => {
+      unsubscribeFocus();
+      unsubscribeBlur();
+    };
+  }, [navigation]);
 
   const [permission, requestPermission] = useCameraPermissions();
   const [torchEnabled, setTorchEnabled] = useState(false);
@@ -50,6 +60,42 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
 
   // Lock to avoid multi-firing
   const scanLockRef = useRef(false);
+
+  // Refs tracking live visibility state to prevent timer race conditions
+  const employeeModalRef = useRef(employeeModalVisible);
+  const registerModalRef = useRef(registerModalVisible);
+  const manualModalRef = useRef(manualModalVisible);
+  const dialogRef = useRef(dialog.visible);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    employeeModalRef.current = employeeModalVisible;
+  }, [employeeModalVisible]);
+
+  useEffect(() => {
+    registerModalRef.current = registerModalVisible;
+  }, [registerModalVisible]);
+
+  useEffect(() => {
+    manualModalRef.current = manualModalVisible;
+  }, [manualModalVisible]);
+
+  useEffect(() => {
+    dialogRef.current = dialog.visible;
+  }, [dialog.visible]);
+
+  const clearResumeTimer = () => {
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearResumeTimer();
+    };
+  }, []);
 
   // Auto-off torch after 60 seconds to conserve battery
   useEffect(() => {
@@ -91,6 +137,7 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   }
 
   const processCode = (rawCode: string) => {
+    clearResumeTimer();
     const clean = rawCode.trim();
     if (!clean) {
       resumeScanning();
@@ -120,6 +167,7 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
           {
             text: 'Proceed',
             onPress: () => {
+              clearResumeTimer();
               setScannedCode(clean);
               setEmployeeModalVisible(true);
             },
@@ -134,7 +182,17 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   };
 
   const handleBarcodeScanned = (result: BarcodeScanningResult) => {
-    if (!isScanningActive || scanLockRef.current) return;
+    if (
+      !isScanningActive ||
+      scanLockRef.current ||
+      employeeModalRef.current ||
+      registerModalRef.current ||
+      manualModalRef.current ||
+      dialogRef.current
+    ) {
+      return;
+    }
+    clearResumeTimer();
     scanLockRef.current = true;
     setIsScanningActive(false);
 
@@ -149,9 +207,19 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
     processCode(cleanCode);
   };
 
-  // 1.5-second cooldown flag to prevent 60 scan triggers per second
+  // 1.5-second cooldown timer to prevent duplicate scan triggers
   const resumeScanning = () => {
-    setTimeout(() => {
+    clearResumeTimer();
+    resumeTimerRef.current = setTimeout(() => {
+      // Guard: Never clear scannedCode or resume scanning if any modal or dialog is still visible
+      if (
+        employeeModalRef.current ||
+        registerModalRef.current ||
+        manualModalRef.current ||
+        dialogRef.current
+      ) {
+        return;
+      }
       scanLockRef.current = false;
       setIsScanningActive(true);
       setScannedCode(null);
@@ -169,7 +237,12 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   };
 
   const handleFileNotInSystem = (code: string) => {
+    clearResumeTimer();
+    scanLockRef.current = true;
+    setIsScanningActive(false);
     setScannedCode(code);
+    // Explicitly hide employee modal so only the registration modal is active (prevents multi-modal overlap on Android)
+    setEmployeeModalVisible(false);
     setRegisterModalVisible(true);
   };
 
@@ -179,7 +252,9 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   };
 
   const handleRegisterSuccess = () => {
+    clearResumeTimer();
     setRegisterModalVisible(false);
+    // Transition cleanly back to the employee modal to mark the newly registered file
     setEmployeeModalVisible(true);
   };
 
@@ -188,14 +263,24 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
       <StatusBar barStyle="light-content" />
 
       {/* Fullscreen Camera Scanner */}
-      <CameraView
-        style={StyleSheet.absoluteFill}
-        enableTorch={torchEnabled}
-        barcodeScannerSettings={{
-          barcodeTypes: ['qr', 'code128', 'code39', 'ean13', 'ean8', 'pdf417'],
-        }}
-        onBarcodeScanned={isScanningActive ? handleBarcodeScanned : undefined}
-      />
+      {isFocused && (
+        <CameraView
+          style={StyleSheet.absoluteFill}
+          enableTorch={torchEnabled}
+          barcodeScannerSettings={{
+            barcodeTypes: ['qr', 'code128', 'code39', 'ean13', 'ean8', 'pdf417'],
+          }}
+          onBarcodeScanned={
+            isScanningActive &&
+            !employeeModalVisible &&
+            !registerModalVisible &&
+            !manualModalVisible &&
+            !dialog.visible
+              ? handleBarcodeScanned
+              : undefined
+          }
+        />
+      )}
 
       {/* Scanner Viewfinder Overlay */}
       <SafeAreaView style={styles.overlay}>

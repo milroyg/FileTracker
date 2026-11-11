@@ -54,6 +54,35 @@ async function deduplicatedRequest<T>(
   return promise;
 }
 
+/**
+ * Classifies if a server response string indicates success (DB saved).
+ * Matches "Ok", "OK", "ok", or affirmative response variations.
+ */
+export function isScanSuccessResponse(rawResponse: string): boolean {
+  if (!rawResponse) return false;
+  const normalized = rawResponse.trim().toLowerCase();
+  return normalized === 'ok' || normalized.startsWith('ok');
+}
+
+/**
+ * Classifies if a server response indicates the code does not exist in the system
+ * and must be registered first (corresponds to URL2 error condition).
+ * Matches "File not in System", "Error", "not in system", "does not exist", etc.
+ */
+export function isFileNotInSystemResponse(rawResponse: string): boolean {
+  if (!rawResponse) return false;
+  const normalized = rawResponse.trim().toLowerCase();
+  return (
+    normalized === 'file not in system' ||
+    normalized.includes('not in system') ||
+    normalized === 'error' ||
+    normalized.startsWith('error') ||
+    normalized.includes('does not exist') ||
+    normalized.includes('not found') ||
+    normalized.includes('not registered')
+  );
+}
+
 export const FileTrackerApi = {
   /**
    * Scans a file barcode and marks it to an employee.
@@ -61,7 +90,7 @@ export const FileTrackerApi = {
    * GET /scan?code=...&employee=...&username=...
    * Responses:
    *  "Ok" -> Successfully recorded
-   *  "File not in System" -> Needs to be registered first
+   *  "File not in System" / "Error" -> Needs to be registered first
    */
   async markFileToEmployee(
     code: string,
@@ -72,11 +101,26 @@ export const FileTrackerApi = {
     const key = `scan:${cleanCode}:${username.trim()}:${employee.trim()}`;
 
     return deduplicatedRequest<string>(key, async () => {
-      const response = await apiClient.get<string>('/scan', {
-        params: { code: cleanCode, employee, username },
-        responseType: 'text',
-      });
-      return response.data?.trim() || '';
+      try {
+        const response = await apiClient.get<string>('/scan', {
+          params: { code: cleanCode, employee, username },
+          responseType: 'text',
+        });
+        const body = response.data?.trim() || '';
+        if (isScanSuccessResponse(body)) {
+          return 'Ok';
+        }
+        if (isFileNotInSystemResponse(body)) {
+          return 'File not in System';
+        }
+        return body;
+      } catch (err: any) {
+        const responseData = String(err?.response?.data || '').trim();
+        if (responseData && isFileNotInSystemResponse(responseData)) {
+          return 'File not in System';
+        }
+        throw err;
+      }
     });
   },
 

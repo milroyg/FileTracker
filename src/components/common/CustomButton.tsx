@@ -20,6 +20,9 @@ interface CustomButtonProps {
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   icon?: React.ReactNode;
+  numberOfLines?: number;
+  adjustsFontSizeToFit?: boolean;
+  minimumFontScale?: number;
 }
 
 export function CustomButton({
@@ -31,6 +34,9 @@ export function CustomButton({
   style,
   textStyle,
   icon,
+  numberOfLines = 1,
+  adjustsFontSizeToFit = true,
+  minimumFontScale = 0.75,
 }: CustomButtonProps) {
   const { colors } = useTheme();
   const isInteractive = !loading && !disabled;
@@ -86,6 +92,9 @@ export function CustomButton({
         <>
           {icon && <>{icon}</>}
           <Text
+            numberOfLines={numberOfLines}
+            adjustsFontSizeToFit={adjustsFontSizeToFit}
+            minimumFontScale={minimumFontScale}
             style={[
               styles.textBase,
               { color: getTextColor() },

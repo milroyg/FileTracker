@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
+  Keyboard,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -124,9 +127,10 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
       ]}
     >
       <KeyboardAwareScrollView
-        bottomOffset={20}
+        bottomOffset={80}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
         <View
           style={[
@@ -169,7 +173,11 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
               },
             ]}
             activeOpacity={0.8}
-            onPress={() => setDivisionModalVisible(true)}
+            onPress={() => {
+              Keyboard.dismiss();
+              setDivisionSearch('');
+              setDivisionModalVisible(true);
+            }}
           >
             <View style={styles.dropdownLeft}>
               <Building size={18} color={colors.textSecondary} />
@@ -222,9 +230,24 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         visible={divisionModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setDivisionModalVisible(false)}
+        statusBarTranslucent
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setDivisionModalVisible(false);
+        }}
       >
-        <View style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalBackdrop}
+        >
+          <TouchableOpacity
+            style={[styles.modalBackdropDismiss, { backgroundColor: colors.overlay }]}
+            activeOpacity={1}
+            onPress={() => {
+              Keyboard.dismiss();
+              setDivisionModalVisible(false);
+            }}
+          />
           <View
             style={[
               styles.modalCard,
@@ -235,12 +258,19 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
                 borderLeftWidth: 1,
                 borderRightWidth: 1,
                 shadowColor: colors.shadow,
+                paddingBottom: Math.max(insets.bottom, 16),
               },
             ]}
           >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Select Division</Text>
-              <TouchableOpacity onPress={() => setDivisionModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setDivisionModalVisible(false);
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
                 <X size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -252,13 +282,18 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
               leftIcon={<Search size={16} color={colors.textSecondary} />}
               clearable
               onClear={() => setDivisionSearch('')}
-              style={{ height: 42 }}
+              returnKeyType="search"
+              autoCorrect={false}
+              style={{ height: 44 }}
             />
 
             <FlatList
               data={filteredDivisions}
               keyExtractor={(item) => item}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              style={styles.divisionList}
+              contentContainerStyle={styles.divisionListContent}
               ListEmptyComponent={
                 <View style={{ paddingVertical: 28, alignItems: 'center' }}>
                   <Text
@@ -282,8 +317,10 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
                       isSelected && { backgroundColor: colors.badgeBackground },
                     ]}
                     onPress={() => {
+                      Keyboard.dismiss();
                       setDivision(item);
                       setDivisionModalVisible(false);
+                      setDivisionSearch('');
                     }}
                   >
                     <Text
@@ -303,7 +340,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
               }}
             />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Themed Feedback Dialog */}
@@ -326,6 +363,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
+    paddingBottom: 40,
   },
   card: {
     borderRadius: 24,
@@ -393,11 +431,27 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  modalBackdropDismiss: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   modalCard: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '75%',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    maxHeight: '80%',
+  },
+  divisionList: {
+    flexGrow: 0,
+    flexShrink: 1,
+    marginTop: 4,
+  },
+  divisionListContent: {
+    paddingBottom: 8,
   },
   modalHeader: {
     flexDirection: 'row',
