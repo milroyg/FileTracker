@@ -30,6 +30,7 @@ module.exports = ({ config }) => {
       package: 'com.wrdfiletracker',
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
+        backgroundImage: './assets/adaptive-icon-background.png',
         backgroundColor: '#ffffff',
       },
       permissions: [
