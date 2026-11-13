@@ -1,13 +1,13 @@
 import React from 'react';
 import {
   TouchableOpacity,
-  Text,
   ActivityIndicator,
   StyleSheet,
   ViewStyle,
   TextStyle,
   StyleProp,
 } from 'react-native';
+import { AppText } from './AppText';
 import { useTheme } from '../../theme/ThemeContext';
 import { fontFamilies } from '../../theme/typography';
 
@@ -91,7 +91,7 @@ export function CustomButton({
       ) : (
         <>
           {icon && <>{icon}</>}
-          <Text
+          <AppText
             numberOfLines={numberOfLines}
             adjustsFontSizeToFit={adjustsFontSizeToFit}
             minimumFontScale={minimumFontScale}
@@ -103,7 +103,7 @@ export function CustomButton({
             ]}
           >
             {title}
-          </Text>
+          </AppText>
         </>
       )}
     </TouchableOpacity>

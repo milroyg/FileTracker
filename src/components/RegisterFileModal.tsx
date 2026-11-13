@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   View,
-  Text,
-  TextInput,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
@@ -11,114 +9,81 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import NetInfo from '@react-native-community/netinfo';
 import { Camera, FilePlus, X, Sparkles, QrCode } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
+import { AppText } from './common/AppText';
+import { AppTextInput } from './common/AppTextInput';
 import { CustomButton } from './common/CustomButton';
-import { CustomDialog, DialogType } from './common/CustomDialog';
-import { FileTrackerApi } from '../api/fileTrackerApi';
+import { CustomDialog } from './common/CustomDialog';
+import { useDialog } from '../hooks/useDialog';
+import { useRegisterFileMutation } from '../hooks/useFileTracker';
+import { toApiError } from '../api/errors';
 import { captureAndExtractText } from '../services/ocrService';
-import { OfflineSyncService } from '../services/offlineSyncService';
+import { OutboxService } from '../services/outboxService';
+import { fetchIsOnline } from '../utils/network';
+import {
+  sanitizeSubjectText,
+  validateSubject,
+  SUBJECT_MAX_LENGTH,
+} from '../utils/subjectValidation';
 
 interface RegisterFileModalProps {
-  visible: boolean;
   code: string;
+  username: string;
   onClose: () => void;
+  /** Called once the file is registered (or queued offline) and the user dismissed the confirmation. */
   onSuccess: () => void;
 }
 
 /**
- * Sanitizes OCR and manual text before display and submission:
- * - Strips HTML tags (<...>) and angle brackets (< >) to prevent Stored XSS
- * - Strips dangerous delimiters (; used in barcodes, \ and backticks)
- * - Disarms spreadsheet formula injection triggers at the start (=, +, -, @)
- * - Normalizes newlines and whitespace
- * - Truncates to max length
+ * "This is a new file" — captures the subject of an unregistered file code
+ * (typed, or read from a photo via OCR) and registers it.
+ * Mount it only while it should be shown: each mount starts with a clean form.
  */
-export function sanitizeSubjectText(rawText: string, maxLength: number = 250): string {
-  if (!rawText) return '';
-  return rawText
-    // Strip HTML tags like <html>, <script>, <b>, etc.
-    .replace(/<[^>]*>/g, '')
-    // Strip angle brackets (<, >) and dangerous delimiters
-    .replace(/[<>;\\`]/g, ' ')
-    // Strip formula injection triggers if positioned at the beginning
-    .replace(/^[=+\-@]+/, '')
-    // Normalize newlines, tabs, and control characters
-    .replace(/[\r\n]+/g, ' ')
-    .replace(/[\t\u00A0]/g, ' ')
-    .replace(/[\x00-\x1F\x7F]/g, '')
-    // Collapse consecutive spaces and trim
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-    .slice(0, maxLength);
-}
-
-export function RegisterFileModal({
-  visible,
-  code,
-  onClose,
-  onSuccess,
-}: RegisterFileModalProps) {
+export function RegisterFileModal({ code, username, onClose, onSuccess }: RegisterFileModalProps) {
   const { colors } = useTheme();
+  const { showDialog, dialogProps } = useDialog();
+  const registerMutation = useRegisterFileMutation();
   const [subject, setSubject] = useState('');
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
   const [isOcrExtracted, setIsOcrExtracted] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dialog, setDialog] = useState<{
-    visible: boolean;
-    title: string;
-    message?: string;
-    type?: DialogType;
-    onCloseAction?: () => void;
-  }>({ visible: false, title: '' });
-
-  // Reset subject input when modal opens for a new file code
-  useEffect(() => {
-    if (visible) {
-      setSubject('');
-      setIsOcrExtracted(false);
-      setIsInputFocused(false);
-    }
-  }, [visible, code]);
+  const [isQueueing, setIsQueueing] = useState(false);
+  const isSubmitting = registerMutation.isPending || isQueueing;
 
   const handleCaptureOcr = async () => {
     try {
       setIsOcrProcessing(true);
       const result = await captureAndExtractText();
-      if (!result) return; // User cancelled camera/cropper
+      if (!result) return; // user cancelled the camera / cropper
 
-      if (result.text) {
-        const cleaned = sanitizeSubjectText(result.text, 250);
-        if (!cleaned || !/[a-zA-Z0-9]/.test(cleaned)) {
-          setDialog({
-            visible: true,
-            title: 'Unclear Text',
-            message:
-              'Could not recognize readable text from the captured image. Please ensure the file title is clearly lit, or type the subject manually.',
-            type: 'warning',
-          });
-          return;
-        }
-
-        setSubject(cleaned);
-        setIsOcrExtracted(true);
-      } else {
-        setDialog({
-          visible: true,
-          title: 'Photo Captured',
+      if (!result.text) {
+        showDialog({
+          title: 'Text Not Recognized',
           message:
-            'Photo captured successfully. On-device text recognition requires an EAS Development or Standalone build. Please type the file subject manually into the box.',
+            'On-device text recognition is not available in this build. Please type the file subject manually.',
           type: 'info',
         });
+        return;
       }
-    } catch (error: any) {
-      setDialog({
-        visible: true,
+
+      const cleaned = sanitizeSubjectText(result.text);
+      if (!/[a-zA-Z0-9]/.test(cleaned)) {
+        showDialog({
+          title: 'Unclear Text',
+          message:
+            'Could not recognize readable text from the captured image. Please ensure the file title is clearly lit, or type the subject manually.',
+          type: 'warning',
+        });
+        return;
+      }
+      setSubject(cleaned);
+      setIsOcrExtracted(true);
+    } catch (error) {
+      showDialog({
         title: 'OCR Scanner',
-        message: error.message || 'Please type the file subject manually.',
+        message: error instanceof Error ? error.message : 'Please type the file subject manually.',
         type: 'info',
       });
     } finally {
@@ -126,103 +91,62 @@ export function RegisterFileModal({
     }
   };
 
+  /** Saves to the outbox first; only then tells the user it was saved. */
+  const queueOffline = async (filename: string, reason: string) => {
+    setIsQueueing(true);
+    try {
+      await OutboxService.enqueueRegisterFile(code, username, filename);
+      showDialog({
+        title: 'Saved Offline',
+        message: `${reason} The registration was saved and will be sent automatically when the connection returns.`,
+        type: 'info',
+        onDismiss: onSuccess,
+      });
+    } catch {
+      showDialog({
+        title: 'Could Not Save',
+        message: 'The registration could not be saved on this device. Please try again.',
+        type: 'error',
+      });
+    } finally {
+      setIsQueueing(false);
+    }
+  };
+
   const handleSubmit = async () => {
-    // 1. HTML / Script injection validation (OWASP Stored XSS defense)
-    const hasHtmlTags = /<[^>]*>|[<>]|javascript:|onerror=|onload=/i.test(subject);
-    if (hasHtmlTags) {
-      setDialog({
-        visible: true,
-        title: 'HTML Not Permitted',
-        message:
-          'HTML tags, script elements, and angle brackets (< >) are not allowed in file subjects. Please enter plain text only.',
-        type: 'warning',
-      });
+    if (isSubmitting) return;
+    const validation = validateSubject(subject);
+    if (!validation.ok) {
+      showDialog({ title: validation.title, message: validation.message, type: 'warning' });
       return;
     }
 
-    const cleaned = sanitizeSubjectText(subject, 250);
-
-    // 2. Empty / Blank Validation
-    if (!cleaned) {
-      setDialog({
-        visible: true,
-        title: 'Subject Required',
-        message: 'Please enter or scan the full file subject.',
-        type: 'warning',
-      });
-      return;
-    }
-
-    // 2. Minimum Length Validation
-    if (cleaned.length < 3) {
-      setDialog({
-        visible: true,
-        title: 'Subject Too Short',
-        message: 'File subject must be at least 3 characters long.',
-        type: 'warning',
-      });
-      return;
-    }
-
-    // 3. Meaningful Content Check (Must contain alphanumeric characters)
-    if (!/[a-zA-Z0-9]/.test(cleaned)) {
-      setDialog({
-        visible: true,
-        title: 'Invalid Subject',
-        message: 'File subject must contain valid letters or numbers.',
-        type: 'warning',
-      });
+    if (!(await fetchIsOnline())) {
+      await queueOffline(validation.value, 'This device is offline.');
       return;
     }
 
     try {
-      setIsSubmitting(true);
-
-      // 4. Network Connectivity Check: Queue in offline outbox if disconnected
-      const netState = await NetInfo.fetch();
-      if (!netState.isConnected) {
-        await OfflineSyncService.queueRegisterFile(code, '', cleaned);
-        setDialog({
-          visible: true,
-          title: 'Offline Action Saved',
-          message:
-            'Device is offline. File registration has been saved to the outbox and will automatically sync when reconnected.',
-          type: 'info',
-          onCloseAction: onSuccess,
-        });
+      const response = await registerMutation.mutateAsync({ code, filename: validation.value });
+      showDialog({
+        title: 'File Registered',
+        message: response || 'File registered successfully in the WRD system.',
+        type: 'success',
+        onDismiss: onSuccess,
+      });
+    } catch (error) {
+      const apiError = toApiError(error);
+      if (apiError.isNetworkError) {
+        await queueOffline(validation.value, 'The WRD server could not be reached.');
         return;
       }
-
-      // 5. Dispatch online API request
-      const response = await FileTrackerApi.registerNewFile(code, cleaned);
-      setDialog({
-        visible: true,
-        title: 'File Registered',
-        message: response || 'File registered successfully in WRD system.',
-        type: 'success',
-        onCloseAction: onSuccess,
-      });
-    } catch (error: any) {
-      setDialog({
-        visible: true,
-        title: 'Registration Error',
-        message: error.message || 'Could not register file code.',
-        type: 'error',
-      });
-    } finally {
-      setIsSubmitting(false);
+      showDialog({ title: 'Registration Error', message: apiError.message, type: 'error' });
     }
   };
 
   return (
     <>
-      <Modal
-        visible={visible}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={onClose}
-      >
+      <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoid}
@@ -249,13 +173,15 @@ export function RegisterFileModal({
                 <View style={styles.header}>
                   <View style={styles.titleRow}>
                     <FilePlus size={22} color={colors.primary} />
-                    <Text style={[styles.title, { color: colors.primary }]}>
+                    <AppText style={[styles.title, { color: colors.primary }]}>
                       This is a new file.
-                    </Text>
+                    </AppText>
                   </View>
                   <TouchableOpacity
                     onPress={onClose}
                     style={styles.closeBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel="Close"
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <X size={20} color={colors.textSecondary} />
@@ -265,16 +191,16 @@ export function RegisterFileModal({
                 {/* Code Badge */}
                 <View style={[styles.codeBadge, { backgroundColor: colors.badgeBackground }]}>
                   <QrCode size={15} color={colors.primary} />
-                  <Text style={[styles.codeBadgeText, { color: colors.primary }]}>
-                    File Code: <Text style={styles.bold}>{code}</Text>
-                  </Text>
+                  <AppText style={[styles.codeBadgeText, { color: colors.primary }]}>
+                    File Code: <AppText style={styles.bold}>{code}</AppText>
+                  </AppText>
                 </View>
 
                 {/* Section Header: Label & OCR Action */}
                 <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                  <AppText style={[styles.sectionLabel, { color: colors.textSecondary }]}>
                     File Subject / Title:
-                  </Text>
+                  </AppText>
                   <TouchableOpacity
                     activeOpacity={0.7}
                     style={[
@@ -292,9 +218,9 @@ export function RegisterFileModal({
                     ) : (
                       <>
                         <Camera size={14} color={colors.primary} />
-                        <Text style={[styles.ocrToolbarText, { color: colors.primary }]}>
+                        <AppText style={[styles.ocrToolbarText, { color: colors.primary }]}>
                           Scan with OCR
-                        </Text>
+                        </AppText>
                       </>
                     )}
                   </TouchableOpacity>
@@ -304,9 +230,12 @@ export function RegisterFileModal({
                 {isOcrExtracted && (
                   <View style={[styles.ocrNotice, { backgroundColor: colors.badgeBackground }]}>
                     <Sparkles size={14} color={colors.primary} />
-                    <Text style={[styles.ocrNoticeText, { color: colors.primary }]} numberOfLines={1}>
+                    <AppText
+                      style={[styles.ocrNoticeText, { color: colors.primary }]}
+                      numberOfLines={1}
+                    >
                       Text extracted via OCR. Please verify before saving.
-                    </Text>
+                    </AppText>
                   </View>
                 )}
 
@@ -320,19 +249,13 @@ export function RegisterFileModal({
                     },
                   ]}
                 >
-                  <TextInput
-                    style={[
-                      styles.textArea,
-                      {
-                        color: colors.text,
-                        fontFamily: fontFamilies.regular,
-                      },
-                    ]}
+                  <AppTextInput
+                    style={styles.textArea}
                     placeholder="e.g. Construction of retaining wall at Division 11..."
-                    placeholderTextColor={colors.textMuted}
+                    accessibilityLabel="File subject"
                     multiline
                     numberOfLines={4}
-                    maxLength={250}
+                    maxLength={SUBJECT_MAX_LENGTH}
                     autoCapitalize="sentences"
                     value={subject}
                     onChangeText={(val) => {
@@ -361,19 +284,22 @@ export function RegisterFileModal({
 
                 {/* Footer outside the box: Helper & Counter */}
                 <View style={styles.footerRow}>
-                  <Text style={[styles.helperText, { color: colors.textMuted }]}>
+                  <AppText style={[styles.helperText, { color: colors.textMuted }]}>
                     Min 3 — max 250 characters
-                  </Text>
-                  <Text
+                  </AppText>
+                  <AppText
                     style={[
                       styles.charCounter,
                       {
-                        color: subject.length >= 240 ? colors.warning : colors.textMuted,
+                        color:
+                          subject.length >= SUBJECT_MAX_LENGTH - 10
+                            ? colors.warning
+                            : colors.textMuted,
                       },
                     ]}
                   >
-                    {subject.length} / 250
-                  </Text>
+                    {subject.length} / {SUBJECT_MAX_LENGTH}
+                  </AppText>
                 </View>
 
                 {/* Actions */}
@@ -399,17 +325,7 @@ export function RegisterFileModal({
       </Modal>
 
       {/* Themed Feedback Dialog */}
-      <CustomDialog
-        visible={dialog.visible}
-        title={dialog.title}
-        message={dialog.message}
-        type={dialog.type}
-        onClose={() => {
-          const action = dialog.onCloseAction;
-          setDialog({ visible: false, title: '' });
-          if (action) action();
-        }}
-      />
+      <CustomDialog {...dialogProps} />
     </>
   );
 }

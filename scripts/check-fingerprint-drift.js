@@ -73,7 +73,9 @@ async function main() {
     const fingerprint = await createFingerprintAsync(PROJECT_ROOT);
     saveBaseline(fingerprint);
     console.log(`\nUpdated baseline to new hash ${fingerprint.hash}.`);
-    console.log('Commit fingerprint-baseline.json, and make sure a new native build ships before the next OTA update.');
+    console.log(
+      'Commit fingerprint-baseline.json, and make sure a new native build ships before the next OTA update.',
+    );
     return;
   }
 
@@ -88,4 +90,3 @@ main().catch((error) => {
   console.error('check-fingerprint-drift failed:', error);
   process.exitCode = 1;
 });
-

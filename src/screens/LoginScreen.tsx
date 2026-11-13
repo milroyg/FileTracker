@@ -1,114 +1,88 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Modal,
-  FlatList,
-  Keyboard,
-  Platform,
-  KeyboardAvoidingView,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Image, TouchableOpacity, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { User, Building, Lock, ChevronDown, Check, X, Eye, EyeOff, Search } from 'lucide-react-native';
-import { LoginScreenProps } from '../navigation/types';
+import { User, Building, Lock, ChevronDown, Eye, EyeOff } from 'lucide-react-native';
+import type { LoginScreenProps } from '../navigation/types';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
+import { AppText } from '../components/common/AppText';
 import { CustomInput } from '../components/common/CustomInput';
 import { CustomButton } from '../components/common/CustomButton';
-import { CustomDialog, DialogType } from '../components/common/CustomDialog';
-import { FocusAwareStatusBar } from '../components/common/FocusAwareStatusBar';
+import { CustomDialog } from '../components/common/CustomDialog';
+import { DivisionPickerModal } from '../components/DivisionPickerModal';
+import { useDialog } from '../hooks/useDialog';
 import { useDirectory } from '../hooks/useDirectory';
 import { StorageService } from '../services/storageService';
-import { SecurityConfig } from '../config/security';
+import { verifyDepartmentPassword } from '../services/authService';
 import { APP_VERSION } from '../config/appInfo';
+
+const MIN_USERNAME_LENGTH = 3;
 
 export function LoginScreen({ navigation }: LoginScreenProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const { data: directory, isLoading: isDirLoading } = useDirectory();
+  const { directory, isLoading: isDirectoryLoading } = useDirectory();
+  const { showDialog, dialogProps } = useDialog();
 
   const [username, setUsername] = useState('');
   const [division, setDivision] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [divisionModalVisible, setDivisionModalVisible] = useState(false);
-  const [divisionSearch, setDivisionSearch] = useState('');
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dialog, setDialog] = useState<{
-    visible: boolean;
-    title: string;
-    message?: string;
-    type?: DialogType;
-  }>({ visible: false, title: '' });
-
-  useEffect(() => {
-    async function checkAutoLogin() {
-      const session = await StorageService.getSession();
-      if (session.isLoggedIn && session.username && session.division) {
-        navigation.replace('Dashboard', {
-          username: session.username,
-          division: session.division,
-        });
-      }
-    }
-    checkAutoLogin();
-  }, [navigation]);
-
-  const divisionsList = directory?.divisions || [];
-  const filteredDivisions = divisionsList.filter((d) =>
-    d.toLowerCase().includes(divisionSearch.toLowerCase())
-  );
 
   const handleLogin = async () => {
+    if (isSubmitting) return;
     const trimmedUser = username.trim();
-    const trimmedDiv = division.trim();
+    const trimmedDivision = division.trim();
 
-    if (!trimmedUser || !trimmedDiv || !password) {
-      setDialog({
-        visible: true,
+    if (!trimmedUser || !trimmedDivision || !password) {
+      showDialog({
         title: 'Incomplete Fields',
         message: 'Please enter username, division, and password.',
         type: 'warning',
       });
       return;
     }
-
-    if (trimmedUser.length < 3) {
-      setDialog({
-        visible: true,
+    if (trimmedUser.length < MIN_USERNAME_LENGTH) {
+      showDialog({
         title: 'Invalid Username',
-        message: 'Username must be at least 3 characters long.',
+        message: `Username must be at least ${MIN_USERNAME_LENGTH} characters long.`,
         type: 'warning',
       });
       return;
     }
 
-    if (password !== SecurityConfig.DEFAULT_ADMIN_PASSWORD) {
-      setDialog({
-        visible: true,
-        title: 'Invalid Password',
-        message: 'The credentials entered are incorrect.',
-        type: 'error',
-      });
-      return;
-    }
-
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      await StorageService.saveSession(trimmedUser, trimmedDiv);
-      navigation.replace('Dashboard', {
-        username: trimmedUser,
-        division: trimmedDiv,
-      });
-    } catch (err: any) {
-      setDialog({
-        visible: true,
+      const check = await verifyDepartmentPassword(password);
+      if (check === 'not_configured') {
+        showDialog({
+          title: 'App Not Configured',
+          message:
+            'This build has no department password configured. Please contact the WRD IT administrator.',
+          type: 'error',
+        });
+        return;
+      }
+      if (check === 'invalid') {
+        showDialog({
+          title: 'Invalid Password',
+          message: 'The credentials entered are incorrect.',
+          type: 'error',
+        });
+        return;
+      }
+
+      const session = { username: trimmedUser, division: trimmedDivision };
+      await StorageService.saveSession(session);
+      setPassword('');
+      navigation.replace('Dashboard', session);
+    } catch (error) {
+      showDialog({
         title: 'Login Error',
-        message: err.message || 'Unable to persist login session.',
+        message: error instanceof Error ? error.message : 'Unable to save the login session.',
         type: 'error',
       });
     } finally {
@@ -127,11 +101,6 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         },
       ]}
     >
-      <FocusAwareStatusBar
-        navigation={navigation}
-        barStyle="light-content"
-        backgroundColor={colors.primary}
-      />
       <KeyboardAwareScrollView
         bottomOffset={80}
         contentContainerStyle={styles.scrollContent}
@@ -144,68 +113,66 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
             {
               backgroundColor: colors.cardBackground,
               borderColor: colors.border,
-              borderWidth: 1,
               shadowColor: colors.shadow,
             },
           ]}
         >
-          {/* Logo & Branding */}
           <View style={styles.branding}>
             <Image
               source={require('../../assets/logo.png')}
               style={styles.logo}
               resizeMode="contain"
+              accessibilityIgnoresInvertColors
             />
-            <Text style={[styles.title, { color: colors.primary }]}>WRD FileTracker</Text>
+            <AppText style={[styles.title, { color: colors.primary }]} accessibilityRole="header">
+              WRD FileTracker
+            </AppText>
           </View>
 
-          {/* Username Input */}
           <CustomInput
             label="Username / Employee"
             placeholder="Enter your name"
             value={username}
             onChangeText={setUsername}
+            autoComplete="username"
             leftIcon={<User size={18} color={colors.textSecondary} />}
           />
 
-          {/* Division Selector */}
-          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Division</Text>
+          <AppText style={[styles.fieldLabel, { color: colors.textSecondary }]}>Division</AppText>
           <TouchableOpacity
             style={[
               styles.dropdownButton,
-              {
-                backgroundColor: colors.inputBackground,
-                borderColor: colors.border,
-              },
+              { backgroundColor: colors.inputBackground, borderColor: colors.border },
             ]}
             activeOpacity={0.8}
             onPress={() => {
               Keyboard.dismiss();
-              setDivisionSearch('');
-              setDivisionModalVisible(true);
+              setIsPickerOpen(true);
             }}
+            accessibilityRole="button"
+            accessibilityLabel={division ? `Division: ${division}` : 'Select division'}
           >
             <View style={styles.dropdownLeft}>
               <Building size={18} color={colors.textSecondary} />
-              <Text
-                style={[
-                  styles.dropdownText,
-                  { color: division ? colors.text : colors.textMuted },
-                ]}
+              <AppText
+                style={[styles.dropdownText, { color: division ? colors.text : colors.textMuted }]}
+                numberOfLines={1}
               >
-                {division || (isDirLoading ? 'Loading divisions...' : 'Select Division')}
-              </Text>
+                {division || (isDirectoryLoading ? 'Loading divisions...' : 'Select Division')}
+              </AppText>
             </View>
             <ChevronDown size={18} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          {/* Password Input */}
           <CustomInput
             label="Password"
             placeholder="Enter department password"
             secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
+            onSubmitEditing={handleLogin}
+            returnKeyType="go"
+            autoComplete="password"
             leftIcon={<Lock size={18} color={colors.textSecondary} />}
             rightIcon={
               showPassword ? (
@@ -215,9 +182,9 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
               )
             }
             onRightIconPress={() => setShowPassword((prev) => !prev)}
+            rightIconAccessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
           />
 
-          {/* Submit Button */}
           <CustomButton
             title="Login"
             onPress={handleLogin}
@@ -226,137 +193,24 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           />
         </View>
 
-        <Text style={[styles.versionText, { color: colors.textMuted }]}>
+        <AppText style={[styles.versionText, { color: colors.headerSubtext }]}>
           WRD FileTracker v{APP_VERSION} • Government of Goa
-        </Text>
+        </AppText>
       </KeyboardAwareScrollView>
 
-      {/* Division Picker Modal */}
-      <Modal
-        visible={divisionModalVisible}
-        transparent
-        animationType="slide"
-        statusBarTranslucent
-        onRequestClose={() => {
-          Keyboard.dismiss();
-          setDivisionModalVisible(false);
-        }}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalBackdrop}
-        >
-          <TouchableOpacity
-            style={[styles.modalBackdropDismiss, { backgroundColor: colors.overlay }]}
-            activeOpacity={1}
-            onPress={() => {
-              Keyboard.dismiss();
-              setDivisionModalVisible(false);
-            }}
-          />
-          <View
-            style={[
-              styles.modalCard,
-              {
-                backgroundColor: colors.cardBackground,
-                borderColor: colors.border,
-                borderTopWidth: 1,
-                borderLeftWidth: 1,
-                borderRightWidth: 1,
-                shadowColor: colors.shadow,
-                paddingBottom: Math.max(insets.bottom, 16),
-              },
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Division</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setDivisionModalVisible(false);
-                }}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
+      {isPickerOpen && (
+        <DivisionPickerModal
+          divisions={directory.divisions}
+          selected={division}
+          onSelect={(selected) => {
+            setDivision(selected);
+            setIsPickerOpen(false);
+          }}
+          onClose={() => setIsPickerOpen(false)}
+        />
+      )}
 
-            <CustomInput
-              placeholder="Search division..."
-              value={divisionSearch}
-              onChangeText={setDivisionSearch}
-              leftIcon={<Search size={16} color={colors.textSecondary} />}
-              clearable
-              onClear={() => setDivisionSearch('')}
-              returnKeyType="search"
-              autoCorrect={false}
-              style={{ height: 44 }}
-            />
-
-            <FlatList
-              data={filteredDivisions}
-              keyExtractor={(item) => item}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              style={styles.divisionList}
-              contentContainerStyle={styles.divisionListContent}
-              ListEmptyComponent={
-                <View style={{ paddingVertical: 28, alignItems: 'center' }}>
-                  <Text
-                    style={{
-                      color: colors.textSecondary,
-                      fontFamily: fontFamilies.medium,
-                      fontSize: 14,
-                    }}
-                  >
-                    No divisions found matching "{divisionSearch}"
-                  </Text>
-                </View>
-              }
-              renderItem={({ item }) => {
-                const isSelected = item === division;
-                return (
-                  <TouchableOpacity
-                    style={[
-                      styles.divisionItem,
-                      { borderBottomColor: colors.border },
-                      isSelected && { backgroundColor: colors.badgeBackground },
-                    ]}
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      setDivision(item);
-                      setDivisionModalVisible(false);
-                      setDivisionSearch('');
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.divisionItemText,
-                        {
-                          color: isSelected ? colors.primary : colors.text,
-                          fontFamily: isSelected ? fontFamilies.bold : fontFamilies.regular,
-                        },
-                      ]}
-                    >
-                      {item}
-                    </Text>
-                    {isSelected && <Check size={18} color={colors.primary} />}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Themed Feedback Dialog */}
-      <CustomDialog
-        visible={dialog.visible}
-        title={dialog.title}
-        message={dialog.message}
-        type={dialog.type}
-        onClose={() => setDialog({ visible: false, title: '' })}
-      />
+      <CustomDialog {...dialogProps} />
     </View>
   );
 }
@@ -372,7 +226,11 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   card: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
     borderRadius: 24,
+    borderWidth: 1,
     padding: 24,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
@@ -394,12 +252,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     textAlign: 'center',
   },
-  subtitle: {
-    fontFamily: fontFamilies.medium,
-    fontSize: 13,
-    marginTop: 4,
-    textAlign: 'center',
-  },
   fieldLabel: {
     fontFamily: fontFamilies.semiBold,
     fontSize: 14,
@@ -416,12 +268,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dropdownLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   dropdownText: {
-    fontFamily: fontFamilies.regular,
+    flex: 1,
     fontSize: 16,
   },
   loginBtn: {
@@ -432,53 +285,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 13,
     marginTop: 24,
-  },
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdropDismiss: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  modalCard: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    maxHeight: '80%',
-  },
-  divisionList: {
-    flexGrow: 0,
-    flexShrink: 1,
-    marginTop: 4,
-  },
-  divisionListContent: {
-    paddingBottom: 8,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontFamily: fontFamilies.bold,
-    fontSize: 18,
-  },
-  divisionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderRadius: 8,
-  },
-  divisionItemText: {
-    fontSize: 16,
   },
 });

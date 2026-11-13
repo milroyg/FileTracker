@@ -1,4 +1,4 @@
-import { TextStyle, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export const fontFamilies = {
   regular: 'Inter_400Regular',

@@ -1,36 +1,29 @@
-import axios from 'axios';
+import { create } from 'axios';
 import { ENV } from '../config/env';
+import { logger } from '../utils/logger';
+import { toApiError } from './errors';
 
-// Enforce HTTPS everywhere for security compliance (replaces vulnerable cleartext HTTP URL3)
-export const BASE_URL = ENV.API_BASE_URL;
-
-export const apiClient = axios.create({
-  baseURL: BASE_URL,
+export const apiClient = create({
+  baseURL: ENV.API_BASE_URL,
   timeout: 30000,
   headers: {
     Accept: 'application/json, text/plain, */*',
   },
 });
 
-apiClient.interceptors.request.use(
-  (config) => {
-    console.log(`[API Outgoing] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.params || '');
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+apiClient.interceptors.request.use((config) => {
+  logger.debug(`[API] ${config.method?.toUpperCase()} ${config.url}`, config.params ?? '');
+  return config;
+});
 
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`[API Response] ${response.status} from ${response.config.url}`);
+    logger.debug(`[API] ${response.status} ${response.config.url}`);
     return response;
   },
   (error) => {
-    console.log(`[API Error] ${error.message} from ${error.config?.url}`);
-    const message =
-      error.response?.data?.message ||
-      error.message ||
-      'Unable to connect to Goa WRD server. Please verify your connection.';
-    return Promise.reject(new Error(message));
-  }
+    const apiError = toApiError(error);
+    logger.debug(`[API] failed ${error?.config?.url}: ${apiError.message}`);
+    return Promise.reject(apiError);
+  },
 );

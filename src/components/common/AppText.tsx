@@ -1,55 +1,40 @@
-import React from 'react';
-import { Text, TextProps, StyleSheet } from 'react-native';
+import React, { createContext, useContext } from 'react';
+import { Text, type TextProps } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
-import { fontFamilies } from '../../theme/typography';
+import { fontFamilies, typography } from '../../theme/typography';
+
+export type AppTextVariant = keyof typeof typography;
 
 export interface AppTextProps extends TextProps {
-  variant?: 'header' | 'title' | 'body' | 'bodyMedium' | 'bold' | 'caption' | 'badge';
+  /** Optional preset from theme/typography; omit to style purely via `style`. */
+  variant?: AppTextVariant;
   color?: string;
 }
 
-/**
- * Standard compulsory Text component for the WRD File Tracker application.
- * Guarantees that the official Inter font family is applied strictly across
- * all iOS and Android devices, preventing any user custom device font from overriding it.
- */
-export function AppText({
-  style,
-  variant = 'body',
-  color,
-  children,
-  ...rest
-}: AppTextProps) {
-  const { colors, typography } = useTheme();
+/** True inside another AppText, where font and colour should be inherited. */
+const NestedTextContext = createContext(false);
 
-  const variantStyle = {
-    header: typography.headerTitle,
-    title: typography.sectionTitle,
-    body: typography.body,
-    bodyMedium: typography.bodyMedium,
-    bold: typography.bodyBold,
-    caption: typography.caption,
-    badge: typography.badge,
-  }[variant];
+/**
+ * The app's only Text component (enforced by eslint.config.js). A top-level
+ * AppText applies the Inter font and the theme's text colour so a device font
+ * setting can never override them; a nested AppText inherits both from its
+ * parent, exactly like nested RN <Text>. `style` always wins.
+ */
+export function AppText({ style, variant, color, children, ...rest }: AppTextProps) {
+  const { colors } = useTheme();
+  const isNested = useContext(NestedTextContext);
+
+  const base = isNested
+    ? color
+      ? { color }
+      : null
+    : { fontFamily: fontFamilies.regular, color: color ?? colors.text };
 
   return (
-    <Text
-      style={[
-        styles.defaultFont,
-        variantStyle,
-        { color: color || colors.text },
-        style,
-      ]}
-      {...rest}
-    >
-      {children}
-    </Text>
+    <NestedTextContext.Provider value>
+      <Text style={[base, variant ? typography[variant] : null, style]} {...rest}>
+        {children}
+      </Text>
+    </NestedTextContext.Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  defaultFont: {
-    fontFamily: fontFamilies.regular,
-  },
-});
-

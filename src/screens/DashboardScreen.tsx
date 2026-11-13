@@ -1,29 +1,28 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-} from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Camera, LogOut } from 'lucide-react-native';
-import { DashboardScreenProps } from '../navigation/types';
+import { Search, Camera, LogOut, CloudUpload, ChevronRight } from 'lucide-react-native';
+import type { DashboardScreenProps } from '../navigation/types';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
 import { StorageService } from '../services/storageService';
+import { AppText } from '../components/common/AppText';
 import { CustomDialog } from '../components/common/CustomDialog';
-import { FocusAwareStatusBar } from '../components/common/FocusAwareStatusBar';
+import { OutboxSheet } from '../components/outbox/OutboxSheet';
+import { RegisterFileModal } from '../components/RegisterFileModal';
+import { useOutbox } from '../hooks/useOutbox';
 
 export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { username, division } = route.params;
+  const { items: outboxItems } = useOutbox();
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
+  const [isOutboxOpen, setIsOutboxOpen] = useState(false);
+  const [codeToRegister, setCodeToRegister] = useState<string | null>(null);
 
-  const handleLogout = () => {
-    setLogoutDialogVisible(true);
-  };
+  const attentionCount = outboxItems.filter((item) => item.status !== 'pending').length;
+  const pendingCount = outboxItems.length - attentionCount;
 
   const confirmLogout = async () => {
     setLogoutDialogVisible(false);
@@ -33,21 +32,8 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
 
   return (
     <View
-      style={[
-        styles.screen,
-        {
-          backgroundColor: colors.background,
-          paddingBottom: insets.bottom,
-        },
-      ]}
+      style={[styles.screen, { backgroundColor: colors.background, paddingBottom: insets.bottom }]}
     >
-      <FocusAwareStatusBar
-        navigation={navigation}
-        barStyle="light-content"
-        backgroundColor={colors.headerBackground}
-      />
-
-      {/* Top Curved Header - Matches reference image */}
       <View
         style={[
           styles.headerCard,
@@ -55,61 +41,54 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
             backgroundColor: colors.headerBackground,
             paddingTop: insets.top + 14,
             borderBottomColor: colors.headerBorder,
-            borderBottomWidth: 1,
             shadowColor: colors.shadow,
           },
         ]}
       >
-        {/* User Info Bar & Logout */}
         <View style={styles.topRow}>
           <View style={styles.userInfo}>
-            <Text style={[styles.welcomeLabel, { color: colors.headerSubtext }]}>Welcome,</Text>
-            <Text style={[styles.usernameText, { color: colors.headerText }]}>{username}</Text>
+            <AppText style={[styles.welcomeLabel, { color: colors.headerSubtext }]}>
+              Welcome,
+            </AppText>
+            <AppText style={[styles.usernameText, { color: colors.headerText }]}>
+              {username}
+            </AppText>
             <View
-              style={[
-                styles.divisionBadge,
-                { backgroundColor: colors.headerButtonBackground },
-              ]}
+              style={[styles.divisionBadge, { backgroundColor: colors.headerButtonBackground }]}
             >
-              <Text
-                style={[
-                  styles.divisionBadgeText,
-                  { color: colors.headerText },
-                ]}
-              >
+              <AppText style={[styles.divisionBadgeText, { color: colors.headerText }]}>
                 {division}
-              </Text>
+              </AppText>
             </View>
           </View>
 
           <TouchableOpacity
-            style={[
-              styles.logoutBtn,
-              { backgroundColor: colors.headerButtonBackground },
-            ]}
-            onPress={handleLogout}
-            accessibilityLabel="Logout"
+            style={[styles.logoutBtn, { backgroundColor: colors.headerButtonBackground }]}
+            onPress={() => setLogoutDialogVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
           >
             <LogOut size={20} color={colors.headerText} />
           </TouchableOpacity>
         </View>
 
-        {/* Centered Logo & WRD FileTracker Title */}
         <View style={styles.centerBranding}>
           <Image
             source={require('../../assets/logo.png')}
             style={styles.logo}
             resizeMode="contain"
+            accessibilityIgnoresInvertColors
           />
-          <Text style={[styles.brandTitle, { color: colors.headerText }]}>
+          <AppText
+            style={[styles.brandTitle, { color: colors.headerText }]}
+            accessibilityRole="header"
+          >
             WRD FileTracker
-          </Text>
+          </AppText>
         </View>
       </View>
 
-      {/* Main Action Hub - Centered Pill Buttons */}
       <View style={styles.actionContainer}>
-        {/* Search Pill Button */}
         <TouchableOpacity
           style={[
             styles.pillButton,
@@ -121,12 +100,12 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
           ]}
           activeOpacity={0.8}
           onPress={() => navigation.navigate('Search')}
+          accessibilityRole="button"
         >
           <Search size={26} color={colors.primary} />
-          <Text style={[styles.pillButtonText, { color: colors.text }]}>Search</Text>
+          <AppText style={styles.pillButtonText}>Search</AppText>
         </TouchableOpacity>
 
-        {/* Scan Pill Button */}
         <TouchableOpacity
           style={[
             styles.pillButton,
@@ -138,13 +117,62 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
           ]}
           activeOpacity={0.8}
           onPress={() => navigation.navigate('Scanner', { username, division })}
+          accessibilityRole="button"
         >
           <Camera size={26} color={colors.primary} />
-          <Text style={[styles.pillButtonText, { color: colors.text }]}>Scan</Text>
+          <AppText style={styles.pillButtonText}>Scan</AppText>
         </TouchableOpacity>
+
+        {outboxItems.length > 0 && (
+          <TouchableOpacity
+            style={[
+              styles.outboxCard,
+              {
+                backgroundColor: attentionCount > 0 ? colors.warningBadge : colors.badgeBackground,
+                borderColor: attentionCount > 0 ? colors.warning : colors.border,
+              },
+            ]}
+            onPress={() => setIsOutboxOpen(true)}
+            accessibilityRole="button"
+            accessibilityHint="Opens the list of actions saved while offline"
+          >
+            <CloudUpload size={20} color={attentionCount > 0 ? colors.warning : colors.primary} />
+            <View style={styles.outboxTextWrap}>
+              <AppText style={styles.outboxTitle}>
+                {pendingCount > 0
+                  ? `${pendingCount} action${pendingCount === 1 ? '' : 's'} waiting to sync`
+                  : 'Saved actions need attention'}
+              </AppText>
+              {attentionCount > 0 && (
+                <AppText style={[styles.outboxSubtitle, { color: colors.textSecondary }]}>
+                  {attentionCount} need{attentionCount === 1 ? 's' : ''} your attention
+                </AppText>
+              )}
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Themed Logout Confirmation Dialog */}
+      {isOutboxOpen && (
+        <OutboxSheet
+          onClose={() => setIsOutboxOpen(false)}
+          onRegisterFile={(code) => {
+            setIsOutboxOpen(false);
+            setCodeToRegister(code);
+          }}
+        />
+      )}
+
+      {codeToRegister && (
+        <RegisterFileModal
+          code={codeToRegister}
+          username={username}
+          onClose={() => setCodeToRegister(null)}
+          onSuccess={() => setCodeToRegister(null)}
+        />
+      )}
+
       <CustomDialog
         visible={logoutDialogVisible}
         title="Logout"
@@ -167,8 +195,8 @@ const styles = StyleSheet.create({
   headerCard: {
     borderBottomLeftRadius: 100,
     borderBottomRightRadius: 100,
+    borderBottomWidth: 1,
     paddingHorizontal: 24,
-    paddingTop: 14,
     paddingBottom: 36,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
@@ -253,5 +281,27 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.bold,
     fontSize: 22,
     letterSpacing: -0.2,
+  },
+  outboxCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    maxWidth: 420,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  outboxTextWrap: {
+    flex: 1,
+  },
+  outboxTitle: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: 14,
+  },
+  outboxSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
   },
 });

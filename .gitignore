@@ -2,6 +2,7 @@ node_modules/
 .expo/
 dist/
 web-build/
+coverage/
 npm-debug.*
 yarn-debug.*
 yarn-error.*
@@ -13,17 +14,20 @@ yarn-error.*
 .env.test.local
 .env.production.local
 
+# Generated native projects (expo prebuild / EAS)
+android/
+ios/
+
+# Build outputs — never commit release binaries
+*.apk
+*.aab
+*.ipa
+
 # macOS
 .DS_Store
 *.pem
 
-# Native build artifacts
-*.iml
-.gradle
-local.properties
+# IDE
 .idea/
-legacy_android/.gradle/
-legacy_android/build/
-legacy_android/app/build/
-legacy_android/.cxx/
-legacy_android/local.properties
+.vscode/
+*.iml

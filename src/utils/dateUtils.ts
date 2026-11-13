@@ -16,7 +16,7 @@ export function parseRecordDate(dateStr: string): number {
 
   // Pattern 1: DD-MM-YYYY or DD/MM/YYYY (with optional HH:mm[:ss])
   const dmyMatch = trimmed.match(
-    /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/
+    /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/,
   );
   if (dmyMatch) {
     const day = parseInt(dmyMatch[1], 10);
@@ -31,7 +31,7 @@ export function parseRecordDate(dateStr: string): number {
 
   // Pattern 2: YYYY-MM-DD or YYYY/MM/DD (with optional HH:mm[:ss])
   const ymdMatch = trimmed.match(
-    /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/
+    /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/,
   );
   if (ymdMatch) {
     const year = parseInt(ymdMatch[1], 10);
@@ -60,3 +60,14 @@ export function sortRecordsByLatestDate(records: MovementRecord[]): MovementReco
   });
 }
 
+/** Short human description of how long ago a timestamp was ("just now", "5 min ago", "2 days ago"). */
+export function formatRelativeTime(timestamp: number, now: number = Date.now()): string {
+  const seconds = Math.max(0, Math.round((now - timestamp) / 1000));
+  if (seconds < 60) return 'just now';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hr${hours === 1 ? '' : 's'} ago`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}

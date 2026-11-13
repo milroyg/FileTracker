@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+dist/
+web-build/
+android/
+ios/
+coverage/
+package-lock.json
+fingerprint-baseline.json
+src/config/fallbackDirectory.json

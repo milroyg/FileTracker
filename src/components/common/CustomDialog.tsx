@@ -1,18 +1,7 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  StyleSheet,
-  TouchableWithoutFeedback,
-} from 'react-native';
-import {
-  CheckCircle2,
-  AlertTriangle,
-  AlertCircle,
-  Info,
-  HelpCircle,
-} from 'lucide-react-native';
+import { View, Modal, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { CheckCircle2, AlertTriangle, AlertCircle, Info, HelpCircle } from 'lucide-react-native';
+import { AppText } from './AppText';
 import { useTheme } from '../../theme/ThemeContext';
 import { fontFamilies } from '../../theme/typography';
 import { CustomButton } from './CustomButton';
@@ -60,34 +49,19 @@ export function CustomDialog({
     switch (type) {
       case 'success':
         return (
-          <View
-            style={[
-              styles.iconWrapper,
-              { backgroundColor: colors.successBadge },
-            ]}
-          >
+          <View style={[styles.iconWrapper, { backgroundColor: colors.successBadge }]}>
             <CheckCircle2 size={32} color={colors.success} />
           </View>
         );
       case 'error':
         return (
-          <View
-            style={[
-              styles.iconWrapper,
-              { backgroundColor: colors.errorBadge },
-            ]}
-          >
+          <View style={[styles.iconWrapper, { backgroundColor: colors.errorBadge }]}>
             <AlertCircle size={32} color={colors.error} />
           </View>
         );
       case 'warning':
         return (
-          <View
-            style={[
-              styles.iconWrapper,
-              { backgroundColor: colors.warningBadge },
-            ]}
-          >
+          <View style={[styles.iconWrapper, { backgroundColor: colors.warningBadge }]}>
             <AlertTriangle size={32} color={colors.warning} />
           </View>
         );
@@ -108,12 +82,7 @@ export function CustomDialog({
   };
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
           <TouchableWithoutFeedback>
@@ -129,12 +98,12 @@ export function CustomDialog({
             >
               {renderIcon()}
 
-              <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+              <AppText style={[styles.title, { color: colors.text }]}>{title}</AppText>
 
               {message ? (
-                <Text style={[styles.message, { color: colors.textSecondary }]}>
+                <AppText style={[styles.message, { color: colors.textSecondary }]}>
                   {message}
-                </Text>
+                </AppText>
               ) : null}
 
               <View style={styles.buttonRow}>
@@ -147,10 +116,7 @@ export function CustomDialog({
                       key={index}
                       title={btn.text}
                       variant={isCancel ? 'outline' : isDestructive ? 'danger' : 'primary'}
-                      style={[
-                        styles.dialogButton,
-                        { flex: 1 },
-                      ]}
+                      style={[styles.dialogButton, { flex: 1 }]}
                       onPress={() => {
                         if (btn.onPress) {
                           btn.onPress();

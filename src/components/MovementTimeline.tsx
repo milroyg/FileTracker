@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, StyleSheet, FlatList } from 'react-native';
+import { AppText } from './common/AppText';
 import { MovementRecord } from '../api/fileTrackerApi';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
@@ -14,9 +15,9 @@ export function MovementTimeline({ records }: MovementTimelineProps) {
   if (records.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+        <AppText style={[styles.emptyText, { color: colors.textMuted }]}>
           No movement history found for this code.
-        </Text>
+        </AppText>
       </View>
     );
   }
@@ -33,15 +34,21 @@ export function MovementTimeline({ records }: MovementTimelineProps) {
     >
       {/* Table Header */}
       <View style={[styles.headerRow, { backgroundColor: colors.tableHeader }]}>
-        <Text style={[styles.headerCell, styles.cellDate, { color: colors.headerText }]}>Date</Text>
-        <Text style={[styles.headerCell, styles.cellUser, { color: colors.headerText }]}>Inward</Text>
-        <Text style={[styles.headerCell, styles.cellEmployee, { color: colors.headerText }]}>Marked To</Text>
+        <AppText style={[styles.headerCell, styles.cellDate, { color: colors.headerText }]}>
+          Date
+        </AppText>
+        <AppText style={[styles.headerCell, styles.cellUser, { color: colors.headerText }]}>
+          Inward
+        </AppText>
+        <AppText style={[styles.headerCell, styles.cellEmployee, { color: colors.headerText }]}>
+          Marked To
+        </AppText>
       </View>
 
       {/* Table Body */}
       <FlatList
         data={records}
-        keyExtractor={(_, index) => index.toString()}
+        keyExtractor={(item, index) => `${item.dt}|${item.employee}|${index}`}
         renderItem={({ item, index }) => {
           const isEven = index % 2 === 0;
           return (
@@ -54,15 +61,22 @@ export function MovementTimeline({ records }: MovementTimelineProps) {
                 },
               ]}
             >
-              <Text style={[styles.dataCell, styles.cellDate, { color: colors.text }]}>
+              <AppText style={[styles.dataCell, styles.cellDate, { color: colors.text }]}>
                 {item.dt}
-              </Text>
-              <Text style={[styles.dataCell, styles.cellUser, { color: colors.textSecondary }]}>
+              </AppText>
+              <AppText style={[styles.dataCell, styles.cellUser, { color: colors.textSecondary }]}>
                 {item.username}
-              </Text>
-              <Text style={[styles.dataCell, styles.cellEmployee, styles.bold, { color: colors.primary }]}>
+              </AppText>
+              <AppText
+                style={[
+                  styles.dataCell,
+                  styles.cellEmployee,
+                  styles.bold,
+                  { color: colors.primary },
+                ]}
+              >
                 {item.employee}
-              </Text>
+              </AppText>
             </View>
           );
         }}

@@ -1,8 +1,6 @@
 import axios from 'axios';
 import { ENV } from '../config/env';
-import fallbackDirectory from '../config/fallbackDirectory.json';
-
-const CSV_URL = ENV.CSV_DIRECTORY_URL;
+import { parseCsv } from '../utils/csv';
 
 export interface DirectoryData {
   divisions: string[];
@@ -10,70 +8,65 @@ export interface DirectoryData {
   allEmployees: string[];
 }
 
+const byName = (a: string, b: string) => a.localeCompare(b);
+
 /**
- * Downloads and normalizes the Water Resources Department directory from Google Sheets CSV.
- * Replaces legacy DBHandler SQLite database with an instant, O(1) in-memory indexed store.
- * Falls back to bundled snapshot if offline or remote request fails.
+ * Builds the division → employees index from the directory CSV
+ * (columns "Office" and "Person"; falls back to the first two columns).
+ * Throws if the CSV contains no usable rows, so an error page or empty sheet
+ * is never cached as the directory.
  */
-export async function fetchAndIndexDirectory(): Promise<DirectoryData> {
-  try {
-    const response = await axios.get<string>(CSV_URL, {
-      timeout: 15000,
-      headers: { 'Cache-Control': 'no-cache' },
-    });
+export function buildDirectory(csvText: string): DirectoryData {
+  const rows = parseCsv(csvText);
+  if (rows.length === 0) throw new Error('Directory CSV is empty.');
 
-    const lines = response.data.split('\n');
-    const divisionSet = new Set<string>();
-    const allEmployeesSet = new Set<string>();
-    const divisionMap: Record<string, Set<string>> = {};
+  const header = rows[0].map((cell) => cell.trim().toLowerCase());
+  const officeIndex = header.indexOf('office');
+  const personIndex = header.indexOf('person');
+  const hasHeader = officeIndex !== -1 && personIndex !== -1;
+  const divisionColumn = hasHeader ? officeIndex : 0;
+  const employeeColumn = hasHeader ? personIndex : 1;
 
-    const startIndex = lines[0]?.toLowerCase().includes('office') ? 1 : 0;
+  const employeesByDivisionSets = new Map<string, Set<string>>();
+  const allEmployees = new Set<string>();
 
-    for (let i = startIndex; i < lines.length; i++) {
-      const rawLine = lines[i]?.trim();
-      if (!rawLine) continue;
+  for (const row of hasHeader ? rows.slice(1) : rows) {
+    const division = row[divisionColumn]?.trim();
+    const employee = row[employeeColumn]?.trim();
+    if (!division || !employee) continue;
 
-      // Format: Office, Person
-      const parts = rawLine.split(',');
-      if (parts.length >= 2) {
-        const division = parts[0]?.trim();
-        const employee = parts[1]?.trim();
-
-        if (division && employee) {
-          divisionSet.add(division);
-          allEmployeesSet.add(employee);
-
-          if (!divisionMap[division]) {
-            divisionMap[division] = new Set<string>();
-          }
-          divisionMap[division].add(employee);
-        }
-      }
+    allEmployees.add(employee);
+    let set = employeesByDivisionSets.get(division);
+    if (!set) {
+      set = new Set();
+      employeesByDivisionSets.set(division, set);
     }
-
-    const sortedDivisions = Array.from(divisionSet).sort((a, b) => a.localeCompare(b));
-    const employeesByDivision: Record<string, string[]> = {};
-
-    for (const div of sortedDivisions) {
-      employeesByDivision[div] = Array.from(divisionMap[div] ?? []).sort((a, b) =>
-        a.localeCompare(b)
-      );
-    }
-
-    return {
-      divisions: sortedDivisions.length > 0 ? sortedDivisions : fallbackDirectory.divisions,
-      employeesByDivision:
-        Object.keys(employeesByDivision).length > 0
-          ? employeesByDivision
-          : fallbackDirectory.employeesByDivision,
-      allEmployees:
-        allEmployeesSet.size > 0
-          ? Array.from(allEmployeesSet).sort((a, b) => a.localeCompare(b))
-          : fallbackDirectory.allEmployees,
-    };
-  } catch (error) {
-    console.warn('[DirectoryService] Live fetch failed, falling back to bundled directory snapshot:', error);
-    return fallbackDirectory as DirectoryData;
+    set.add(employee);
   }
+
+  if (employeesByDivisionSets.size === 0) {
+    throw new Error('Directory CSV has no division/employee rows.');
+  }
+
+  const divisions = [...employeesByDivisionSets.keys()].sort(byName);
+  const employeesByDivision: Record<string, string[]> = {};
+  for (const division of divisions) {
+    employeesByDivision[division] = [...employeesByDivisionSets.get(division)!].sort(byName);
+  }
+
+  return { divisions, employeesByDivision, allEmployees: [...allEmployees].sort(byName) };
 }
 
+/**
+ * Downloads the Office/Employee directory published from Google Sheets.
+ * Errors propagate on purpose: React Query then keeps the last good cached
+ * directory instead of overwriting it with the bundled snapshot.
+ */
+export async function fetchDirectory(): Promise<DirectoryData> {
+  const response = await axios.get<string>(ENV.CSV_DIRECTORY_URL, {
+    timeout: 15000,
+    responseType: 'text',
+    headers: { 'Cache-Control': 'no-cache' },
+  });
+  return buildDirectory(response.data);
+}

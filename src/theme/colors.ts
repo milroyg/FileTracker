@@ -48,11 +48,11 @@ export interface ThemeColors {
 }
 
 export const lightColors: ThemeColors = {
-  primary: '#4c73fd',       // Goa WRD Blue 
+  primary: '#4c73fd', // Goa WRD Blue
   primaryLight: '#60a5fa',
   primaryDark: '#0C1DBB',
   accent: '#2563eb',
-  background: '#ffffff',    // Pure White canvas 
+  background: '#ffffff', // Pure White canvas
   cardBackground: '#ffffff',
   surface: '#f8fafc',
   inputBackground: '#ffffff',
@@ -93,15 +93,15 @@ export const lightColors: ThemeColors = {
 };
 
 export const darkColors: ThemeColors = {
-  primary: '#4c73fd',       // Accessible vibrant blue on dark surfaces
+  primary: '#4c73fd', // Accessible vibrant blue on dark surfaces
   primaryLight: '#60a5fa',
   primaryDark: '#1e40af',
   accent: '#38bdf8',
-  background: '#0a0f1d',    // Deep slate-navy
-  cardBackground: '#131b2e',// Elevated card slate
+  background: '#0a0f1d', // Deep slate-navy
+  cardBackground: '#131b2e', // Elevated card slate
   surface: '#1c263f',
   inputBackground: '#0e1526',
-  text: '#f8fafc',          // High readability slate-50
+  text: '#f8fafc', // High readability slate-50
   textSecondary: '#94a3b8', // Muted slate-400
   textMuted: '#64748b',
   border: '#22304d',

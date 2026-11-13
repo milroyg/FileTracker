@@ -1,91 +1,75 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Animated,
-  Text,
-  StyleSheet,
-  View,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Animated, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
+import NetInfo from '@react-native-community/netinfo';
 import { WifiOff, Wifi } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { fontFamilies } from '../../theme/typography';
-import { OfflineSyncService } from '../../services/offlineSyncService';
+import { isOnline } from '../../utils/network';
+import { useOutbox } from '../../hooks/useOutbox';
+import { AppText } from './AppText';
 
+const HIDDEN_OFFSET = -120;
+const RESTORED_BANNER_MS = 3000;
+
+/**
+ * Slides down while the device is offline, and briefly confirms when the
+ * connection returns. Syncing itself is handled by useOutboxAutoSync.
+ */
 export function OfflineBanner() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-
+  const { items } = useOutbox();
   const [isOffline, setIsOffline] = useState(false);
   const [showRestored, setShowRestored] = useState(false);
-  const [syncMessage, setSyncMessage] = useState('Back Online • Connected to WRD server');
-  const hasMountedRef = useRef(false);
-
-  // Animation controller for sliding down from top
-  const translateY = useRef(new Animated.Value(-120)).current;
+  const [translateY] = useState(() => new Animated.Value(HIDDEN_OFFSET));
 
   useEffect(() => {
-    // Initial connectivity check
-    NetInfo.fetch().then((state) => {
-      const offline = state.isConnected === false || state.isInternetReachable === false;
+    let wasOffline = false;
+    let restoredTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const offline = !isOnline(state);
       setIsOffline(offline);
-      hasMountedRef.current = true;
-    });
-
-    // Real-time network listener
-    const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
-      const offline = state.isConnected === false || state.isInternetReachable === false;
-
-      if (hasMountedRef.current) {
-        if (!offline && isOffline) {
-          // Just reconnected: sync offline outbox & show confirmation
-          setShowRestored(true);
-          OfflineSyncService.syncOutbox().then(({ syncedCount }) => {
-            if (syncedCount > 0) {
-              setSyncMessage(
-                `Back Online • Synced ${syncedCount} offline file movement${syncedCount === 1 ? '' : 's'}`
-              );
-            } else {
-              setSyncMessage('Back Online • Connected to WRD server');
-            }
-          });
-
-          setTimeout(() => {
-            setShowRestored(false);
-          }, 3000);
-        }
+      if (wasOffline && !offline) {
+        setShowRestored(true);
+        clearTimeout(restoredTimer);
+        restoredTimer = setTimeout(() => setShowRestored(false), RESTORED_BANNER_MS);
       }
-
-      setIsOffline(offline);
-      hasMountedRef.current = true;
+      wasOffline = offline;
     });
 
-    return () => unsubscribe();
-  }, [isOffline]);
+    return () => {
+      unsubscribe();
+      clearTimeout(restoredTimer);
+    };
+  }, []);
 
   const isVisible = isOffline || showRestored;
 
   useEffect(() => {
-    if (isVisible) {
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        friction: 8,
-        tension: 50,
-      }).start();
-    } else {
-      Animated.timing(translateY, {
-        toValue: -120,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    }
+    const animation = isVisible
+      ? Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          friction: 8,
+          tension: 50,
+        })
+      : Animated.timing(translateY, {
+          toValue: HIDDEN_OFFSET,
+          duration: 250,
+          useNativeDriver: true,
+        });
+    animation.start();
+    return () => animation.stop();
   }, [isVisible, translateY]);
 
+  const pendingCount = items.filter((item) => item.status === 'pending').length;
   const isRestored = !isOffline && showRestored;
-  const bannerBg = isRestored ? colors.success : colors.error;
   const statusText = isRestored
-    ? syncMessage
+    ? pendingCount > 0
+      ? `Back Online • Syncing ${pendingCount} saved action${pendingCount === 1 ? '' : 's'}`
+      : 'Back Online • Connected to WRD server'
     : 'No Internet Connection • Offline Mode';
 
   return (
@@ -93,12 +77,13 @@ export function OfflineBanner() {
       style={[
         styles.container,
         {
-          backgroundColor: bannerBg,
+          backgroundColor: isRestored ? colors.success : colors.error,
           paddingTop: Math.max(insets.top, 8) + 6,
           transform: [{ translateY }],
         },
       ]}
       pointerEvents={isVisible ? 'auto' : 'none'}
+      accessibilityLiveRegion="polite"
     >
       <View style={styles.contentRow}>
         {isRestored ? (
@@ -106,7 +91,7 @@ export function OfflineBanner() {
         ) : (
           <WifiOff size={16} color={colors.white} style={styles.icon} />
         )}
-        <Text style={[styles.text, { color: colors.white }]}>{statusText}</Text>
+        <AppText style={[styles.text, { color: colors.white }]}>{statusText}</AppText>
       </View>
     </Animated.View>
   );

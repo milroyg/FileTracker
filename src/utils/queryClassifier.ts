@@ -20,4 +20,3 @@ export function classifySearchQuery(query: string): SearchMode {
   // Pure words / descriptive sentences are file titles/subjects
   return 'FILENAME';
 }
-

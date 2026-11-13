@@ -1,15 +1,10 @@
 import React from 'react';
-import {
-  View,
-  TextInput,
-  Text,
-  StyleSheet,
-  TextInputProps,
-  TouchableOpacity,
-} from 'react-native';
+import { View, StyleSheet, TouchableOpacity, type TextInputProps } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { fontFamilies } from '../../theme/typography';
+import { AppText } from './AppText';
+import { AppTextInput } from './AppTextInput';
 
 interface CustomInputProps extends TextInputProps {
   label?: string;
@@ -17,6 +12,7 @@ interface CustomInputProps extends TextInputProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   onRightIconPress?: () => void;
+  rightIconAccessibilityLabel?: string;
   clearable?: boolean;
   onClear?: () => void;
 }
@@ -27,22 +23,18 @@ export function CustomInput({
   leftIcon,
   rightIcon,
   onRightIconPress,
+  rightIconAccessibilityLabel,
   clearable,
   onClear,
   style,
   ...rest
 }: CustomInputProps) {
   const { colors } = useTheme();
-
-  const showClear = clearable && rest.value !== undefined && String(rest.value).length > 0 && onClear;
+  const showClear = !!onClear && clearable && String(rest.value ?? '').length > 0;
 
   return (
     <View style={styles.wrapper}>
-      {label && (
-        <Text style={[styles.label, { color: colors.textSecondary }]}>
-          {label}
-        </Text>
-      )}
+      {label && <AppText style={[styles.label, { color: colors.textSecondary }]}>{label}</AppText>}
       <View
         style={[
           styles.container,
@@ -53,14 +45,10 @@ export function CustomInput({
         ]}
       >
         {leftIcon && <View style={styles.iconContainer}>{leftIcon}</View>}
-        <TextInput
-          style={[
-            styles.input,
-            { color: colors.text, fontFamily: fontFamilies.regular },
-            style,
-          ]}
-          placeholderTextColor={colors.textMuted}
+        <AppTextInput
+          style={[styles.input, style]}
           autoCapitalize="none"
+          accessibilityLabel={rest.accessibilityLabel ?? label ?? rest.placeholder}
           {...rest}
         />
         {showClear && (
@@ -68,6 +56,7 @@ export function CustomInput({
             activeOpacity={0.6}
             onPress={onClear}
             style={styles.clearButton}
+            accessibilityRole="button"
             accessibilityLabel="Clear text"
           >
             <X size={16} color={colors.textMuted} />
@@ -79,6 +68,8 @@ export function CustomInput({
               activeOpacity={0.7}
               onPress={onRightIconPress}
               style={styles.iconContainer}
+              accessibilityRole="button"
+              accessibilityLabel={rightIconAccessibilityLabel}
             >
               {rightIcon}
             </TouchableOpacity>
@@ -86,11 +77,7 @@ export function CustomInput({
             <View style={styles.iconContainer}>{rightIcon}</View>
           ))}
       </View>
-      {error && (
-        <Text style={[styles.errorText, { color: colors.error }]}>
-          {error}
-        </Text>
-      )}
+      {error && <AppText style={[styles.errorText, { color: colors.error }]}>{error}</AppText>}
     </View>
   );
 }
