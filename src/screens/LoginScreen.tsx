@@ -20,6 +20,7 @@ import { fontFamilies } from '../theme/typography';
 import { CustomInput } from '../components/common/CustomInput';
 import { CustomButton } from '../components/common/CustomButton';
 import { CustomDialog, DialogType } from '../components/common/CustomDialog';
+import { FocusAwareStatusBar } from '../components/common/FocusAwareStatusBar';
 import { useDirectory } from '../hooks/useDirectory';
 import { StorageService } from '../services/storageService';
 import { SecurityConfig } from '../config/security';
@@ -126,6 +127,11 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         },
       ]}
     >
+      <FocusAwareStatusBar
+        navigation={navigation}
+        barStyle="light-content"
+        backgroundColor={colors.primary}
+      />
       <KeyboardAwareScrollView
         bottomOffset={80}
         contentContainerStyle={styles.scrollContent}

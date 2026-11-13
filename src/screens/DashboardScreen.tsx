@@ -13,6 +13,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
 import { StorageService } from '../services/storageService';
 import { CustomDialog } from '../components/common/CustomDialog';
+import { FocusAwareStatusBar } from '../components/common/FocusAwareStatusBar';
 
 export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
@@ -36,17 +37,23 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
         styles.screen,
         {
           backgroundColor: colors.background,
-          paddingTop: insets.top,
           paddingBottom: insets.bottom,
         },
       ]}
     >
+      <FocusAwareStatusBar
+        navigation={navigation}
+        barStyle="light-content"
+        backgroundColor={colors.headerBackground}
+      />
+
       {/* Top Curved Header - Matches reference image */}
       <View
         style={[
           styles.headerCard,
           {
-            backgroundColor: colors.primary,
+            backgroundColor: colors.headerBackground,
+            paddingTop: insets.top + 14,
             borderBottomColor: colors.headerBorder,
             borderBottomWidth: 1,
             shadowColor: colors.shadow,

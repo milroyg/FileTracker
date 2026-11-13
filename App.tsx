@@ -52,13 +52,13 @@ const asyncStoragePersister = createAsyncStoragePersister({
 });
 
 function AppShell() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <>
       <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={colors.cardBackground}
+        barStyle="light-content"
+        backgroundColor={colors.primary}
       />
       <OfflineBanner />
       <NavigationContainer>

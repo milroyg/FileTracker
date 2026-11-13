@@ -28,6 +28,7 @@ import { fontFamilies } from '../theme/typography';
 import { CustomInput } from '../components/common/CustomInput';
 import { CustomButton } from '../components/common/CustomButton';
 import { MovementTimeline } from '../components/MovementTimeline';
+import { FocusAwareStatusBar } from '../components/common/FocusAwareStatusBar';
 import { FileTrackerApi, MovementRecord, FileSearchResult } from '../api/fileTrackerApi';
 import { classifySearchQuery, SearchMode } from '../utils/queryClassifier';
 import { sortRecordsByLatestDate } from '../utils/dateUtils';
@@ -188,17 +189,23 @@ export function SearchScreen({ route, navigation }: SearchScreenProps) {
         styles.screen,
         {
           backgroundColor: colors.background,
-          paddingTop: insets.top,
           paddingBottom: insets.bottom,
         },
       ]}
     >
+      <FocusAwareStatusBar
+        navigation={navigation}
+        barStyle="light-content"
+        backgroundColor={colors.headerBackground}
+      />
+
       {/* Header Bar */}
       <View
         style={[
           styles.header,
           {
             backgroundColor: colors.headerBackground,
+            paddingTop: insets.top + 12,
             borderBottomColor: colors.headerBorder,
             borderBottomWidth: 1,
             shadowColor: colors.shadow,

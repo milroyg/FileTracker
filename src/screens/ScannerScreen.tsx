@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Modal,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
@@ -20,6 +21,7 @@ import { RegisterFileModal } from '../components/RegisterFileModal';
 import { CustomButton } from '../components/common/CustomButton';
 import { CustomInput } from '../components/common/CustomInput';
 import { CustomDialog, DialogButton } from '../components/common/CustomDialog';
+import { FocusAwareStatusBar } from '../components/common/FocusAwareStatusBar';
 
 export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   const { colors } = useTheme();
@@ -268,7 +270,12 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.black }]}>
-      <StatusBar barStyle="light-content" />
+      <FocusAwareStatusBar
+        navigation={navigation}
+        barStyle="light-content"
+        backgroundColor={colors.black}
+        translucent={Platform.OS === 'android'}
+      />
 
       {/* Fullscreen Camera Scanner */}
       {isFocused && (
