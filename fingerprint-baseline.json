@@ -6,7 +6,7 @@
       "reasons": [
         "bareGitIgnore"
       ],
-      "hash": "6d4138d9d989328d847944dc72424e181f65a098"
+      "hash": "9c3f1e82ddb20583aef36d2a7b7b73c19a28d8ca"
     },
     {
       "type": "file",
@@ -14,7 +14,7 @@
       "reasons": [
         "easBuild"
       ],
-      "hash": "59290bce51484cf0581bfe69702b231f8bcb4ced"
+      "hash": "13d264467c0dfe6db0fa7a4e99716331cb142ef9"
     },
     {
       "type": "file",
@@ -23,7 +23,7 @@
         "expoConfigExternalFile"
       ],
       "overrideHashKey": "expoConfigExternalFile:contentsOnly",
-      "hash": "13f7ac483da631c218cc96e28085e9dd9dcdb9b7"
+      "hash": "3fa5846446695b17b87770de22e270f4ad462f17"
     },
     {
       "type": "file",
@@ -32,16 +32,17 @@
         "expoConfigExternalFile"
       ],
       "overrideHashKey": "expoConfigExternalFile:contentsOnly",
-      "hash": "25357b2f5c12766d1d812a5ec72c8b7b1d5c8579"
+      "hash": "228b9b166a9dce61c951dfe405ed9b89ed148218"
     },
     {
       "type": "file",
-      "filePath": "assets/adaptive-icon-background.png",
+      "filePath": "assets/splash-icon.png",
       "reasons": [
+        "expoConfigExternalFile",
         "expoConfigExternalFile"
       ],
       "overrideHashKey": "expoConfigExternalFile:contentsOnly",
-      "hash": "50f85225c0e03b023aad38316e1013bfc93b60bc"
+      "hash": "21c55c0e0c589193ceeb90c50022ca9acdd32ea1"
     },
     {
       "type": "file",
@@ -970,11 +971,11 @@
     {
       "type": "contents",
       "id": "expoConfig",
-      "contents": "{\"android\":{\"adaptiveIcon\":{\"backgroundColor\":\"#ffffff\",\"backgroundImage\":\"./assets/adaptive-icon-background.png\",\"foregroundImage\":\"./assets/adaptive-icon.png\"},\"blockedPermissions\":[\"android.permission.READ_EXTERNAL_STORAGE\",\"android.permission.RECORD_AUDIO\",\"android.permission.SYSTEM_ALERT_WINDOW\",\"android.permission.WRITE_EXTERNAL_STORAGE\"],\"package\":\"com.wrdfiletracker\",\"permissions\":[\"android.permission.ACCESS_NETWORK_STATE\",\"android.permission.CAMERA\",\"android.permission.INTERNET\"]},\"extra\":{\"eas\":{\"projectId\":\"457fc8f5-6795-4407-b787-10765272a0eb\"}},\"icon\":\"./assets/icon.png\",\"ios\":{\"bundleIdentifier\":\"com.wrdfiletracker\",\"infoPlist\":{\"ITSAppUsesNonExemptEncryption\":false},\"supportsTablet\":true},\"name\":\"WRD File Tracker\",\"newArchEnabled\":true,\"orientation\":\"default\",\"platforms\":[\"android\",\"ios\"],\"plugins\":[\"expo-splash-screen\",[\"expo-build-properties\",{\"android\":{\"compileSdkVersion\":36,\"enableMinifyInReleaseBuilds\":true,\"enableProguardInReleaseBuilds\":true,\"minSdkVersion\":26,\"targetSdkVersion\":36},\"ios\":{\"deploymentTarget\":\"16.4\"}}],[\"expo-camera\",{\"cameraPermission\":\"Allow WRD File Tracker to access your camera to scan file barcodes and QR codes.\",\"microphonePermission\":false,\"recordAudioAndroid\":false}],[\"expo-image-picker\",{\"cameraPermission\":\"Allow WRD File Tracker to use your camera to photograph file subjects for text recognition.\",\"microphonePermission\":false,\"photosPermission\":false}],[\"expo-secure-store\",{\"faceIDPermission\":false}]],\"runtimeVersion\":{\"policy\":\"fingerprint\"},\"sdkVersion\":\"57.0.0\",\"slug\":\"wrd-filetracker\",\"splash\":{\"backgroundColor\":\"#ffffff\",\"image\":\"./assets/splash-icon.png\",\"resizeMode\":\"contain\"},\"updates\":{\"url\":\"https://u.expo.dev/457fc8f5-6795-4407-b787-10765272a0eb\"},\"userInterfaceStyle\":\"automatic\",\"version\":\"2.0.0\"}",
+      "contents": "{\"android\":{\"adaptiveIcon\":{\"backgroundColor\":\"#ffffff\",\"foregroundImage\":\"./assets/adaptive-icon.png\",\"monochromeImage\":\"./assets/adaptive-icon-monochrome.png\"},\"blockedPermissions\":[\"android.permission.READ_EXTERNAL_STORAGE\",\"android.permission.RECORD_AUDIO\",\"android.permission.SYSTEM_ALERT_WINDOW\",\"android.permission.WRITE_EXTERNAL_STORAGE\"],\"package\":\"com.wrdfiletracker\",\"permissions\":[\"android.permission.ACCESS_NETWORK_STATE\",\"android.permission.CAMERA\",\"android.permission.INTERNET\"]},\"extra\":{\"eas\":{\"projectId\":\"457fc8f5-6795-4407-b787-10765272a0eb\"}},\"icon\":\"./assets/icon.png\",\"ios\":{\"bundleIdentifier\":\"com.wrdfiletracker\",\"infoPlist\":{\"ITSAppUsesNonExemptEncryption\":false},\"supportsTablet\":true},\"name\":\"WRD File Tracker\",\"newArchEnabled\":true,\"orientation\":\"default\",\"platforms\":[\"android\",\"ios\"],\"plugins\":[[\"expo-build-properties\",{\"android\":{\"compileSdkVersion\":36,\"enableMinifyInReleaseBuilds\":true,\"enableProguardInReleaseBuilds\":true,\"minSdkVersion\":26,\"targetSdkVersion\":36},\"ios\":{\"deploymentTarget\":\"16.4\"}}],[\"expo-camera\",{\"cameraPermission\":\"Allow WRD File Tracker to access your camera to scan file barcodes and QR codes.\",\"microphonePermission\":false,\"recordAudioAndroid\":false}],[\"expo-image-picker\",{\"cameraPermission\":\"Allow WRD File Tracker to use your camera to photograph file subjects for text recognition.\",\"microphonePermission\":false,\"photosPermission\":false}],[\"expo-secure-store\",{\"faceIDPermission\":false}],[\"expo-splash-screen\",{\"backgroundColor\":\"#ffffff\",\"dark\":{\"backgroundColor\":\"#0a0f1d\",\"image\":\"./assets/splash-icon.png\"},\"image\":\"./assets/splash-icon.png\",\"imageWidth\":200,\"resizeMode\":\"contain\"}]],\"runtimeVersion\":{\"policy\":\"fingerprint\"},\"sdkVersion\":\"57.0.0\",\"slug\":\"wrd-filetracker\",\"updates\":{\"url\":\"https://u.expo.dev/457fc8f5-6795-4407-b787-10765272a0eb\"},\"userInterfaceStyle\":\"automatic\",\"version\":\"2.0.0\"}",
       "reasons": [
         "expoConfig"
       ],
-      "hash": "a4ad5394b2d8a3aeaeb22b1b94ed008c79107c6f"
+      "hash": "9790011db744d84ebfbd27d2fc3e48faea9a77d0"
     },
     {
       "type": "contents",
@@ -988,11 +989,11 @@
     {
       "type": "contents",
       "id": "packageJson:scripts",
-      "contents": "{\"start\":\"expo start\",\"web\":\"expo start --web\",\"lint\":\"expo lint\",\"typecheck\":\"tsc --noEmit\",\"test\":\"jest\",\"test:watch\":\"jest --watch\",\"format\":\"prettier --write .\",\"format:check\":\"prettier --check .\",\"validate\":\"npm run typecheck && npm run lint && npm run test -- --ci && npm run format:check\",\"check-drift\":\"node scripts/check-fingerprint-drift.js\",\"hash-password\":\"node scripts/hash-password.js\",\"prepare\":\"husky\"}",
+      "contents": "{\"start\":\"expo start\",\"web\":\"expo start --web\",\"lint\":\"eslint .\",\"typecheck\":\"tsc --noEmit\",\"test\":\"jest\",\"test:watch\":\"jest --watch\",\"format\":\"prettier --write .\",\"format:check\":\"prettier --check .\",\"validate\":\"npm run typecheck && npm run lint -- --max-warnings=0 && npm run test -- --ci && npm run format:check\",\"check-drift\":\"node scripts/check-fingerprint-drift.js\",\"hash-password\":\"node scripts/hash-password.js\",\"prepare\":\"husky\"}",
       "reasons": [
         "packageJson:scripts"
       ],
-      "hash": "cfc22e9ffaa14bd7e393aada12218daa7a2eb3e9"
+      "hash": "61c36af668a48421e9557ac2f8d058444262af85"
     },
     {
       "type": "contents",
@@ -1013,5 +1014,5 @@
       "hash": "e50c1fe38558969b13e763507511533c7beaf8c9"
     }
   ],
-  "hash": "cf82aa51cf730fc5e617b91e5c70690837efdae6"
+  "hash": "d396dfd5632e5505a07fc775a112affa01492b29"
 }

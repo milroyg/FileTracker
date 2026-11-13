@@ -26,11 +26,6 @@ module.exports = ({ config }) => ({
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
-  splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: '#ffffff',
-  },
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.wrdfiletracker',
@@ -42,9 +37,12 @@ module.exports = ({ config }) => ({
     // Must stay identical to the legacy native app's applicationId so the
     // Play Store ships this as an update to the existing listing.
     package: 'com.wrdfiletracker',
+    // Artwork sits inside the 66dp safe-zone circle of the 108dp canvas, so no
+    // launcher mask (circle, squircle, rounded square) crops it.
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundImage: './assets/adaptive-icon-background.png',
+      // Android 13+ themed icons: single-colour glyph tinted by the system.
+      monochromeImage: './assets/adaptive-icon-monochrome.png',
       backgroundColor: '#ffffff',
     },
     permissions: [
@@ -94,7 +92,22 @@ module.exports = ({ config }) => ({
     ],
     // SecureStore is used without biometric protection, so no Face ID prompt text.
     ['expo-secure-store', { faceIDPermission: false }],
-    'expo-splash-screen',
+    // Splash options must be passed here: the plugin ignores the old top-level
+    // `splash` key. Android 12+ crops the image to a circle of 2/3 its size,
+    // so the artwork is padded to sit inside that circle.
+    [
+      'expo-splash-screen',
+      {
+        image: './assets/splash-icon.png',
+        imageWidth: 200,
+        resizeMode: 'contain',
+        backgroundColor: '#ffffff',
+        dark: {
+          image: './assets/splash-icon.png',
+          backgroundColor: '#0a0f1d',
+        },
+      },
+    ],
     [
       'expo-build-properties',
       {
