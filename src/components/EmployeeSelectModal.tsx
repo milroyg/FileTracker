@@ -380,10 +380,11 @@ export function EmployeeSelectModal({
             </View>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
 
-      {/* Themed Feedback Dialog */}
-      <CustomDialog {...dialogProps} />
+        {/* Must be nested inside this Modal: iOS can only present a second
+            modal on top of the current one, never beside it. */}
+        <CustomDialog {...dialogProps} />
+      </Modal>
     </>
   );
 }

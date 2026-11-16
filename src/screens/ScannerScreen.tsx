@@ -17,7 +17,9 @@ import {
   SCAN_COOLDOWN_MS,
   normalizeScannedCode,
   scannerReducer,
+  type ScannerState,
 } from './scanner/scannerMachine';
+import { MODAL_SWAP_DELAY_MS } from '../utils/modal';
 
 const TORCH_AUTO_OFF_MS = 60_000;
 const BARCODE_TYPES = ['qr', 'code128', 'code39', 'ean13', 'ean8', 'pdf417'] as const;
@@ -30,6 +32,16 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [state, dispatch] = useReducer(scannerReducer, INITIAL_SCANNER_STATE);
+
+  // The registration modal replaces the employee modal; on iOS it must wait
+  // until that one has finished closing or it silently never appears. Each
+  // transition produces a new state object, so readiness is tracked per object.
+  const [registerReadyFor, setRegisterReadyFor] = useState<ScannerState | null>(null);
+  useEffect(() => {
+    if (state.phase !== 'register') return;
+    const timer = setTimeout(() => setRegisterReadyFor(state), MODAL_SWAP_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [state]);
 
   // The camera fires several events for one barcode before React re-renders;
   // only the first one per scanning session is handled.
@@ -145,7 +157,7 @@ export function ScannerScreen({ route, navigation }: ScannerScreenProps) {
         />
       )}
 
-      {state.phase === 'register' && (
+      {state.phase === 'register' && registerReadyFor === state && (
         <RegisterFileModal
           code={state.code}
           username={username}

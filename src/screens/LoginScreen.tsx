@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, Keyboard } from 'react-native';
+import { View, StyleSheet, Image, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { User, Building, Lock, ChevronDown, Eye, EyeOff } from 'lucide-react-native';
+import { User, Building, Lock, Eye, EyeOff } from 'lucide-react-native';
 import type { LoginScreenProps } from '../navigation/types';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamilies } from '../theme/typography';
@@ -10,14 +10,14 @@ import { AppText } from '../components/common/AppText';
 import { CustomInput } from '../components/common/CustomInput';
 import { CustomButton } from '../components/common/CustomButton';
 import { CustomDialog } from '../components/common/CustomDialog';
-import { DivisionPickerModal } from '../components/DivisionPickerModal';
+import { SelectField } from '../components/common/SelectField';
+import { OptionPickerModal } from '../components/OptionPickerModal';
 import { useDialog } from '../hooks/useDialog';
 import { useDirectory } from '../hooks/useDirectory';
 import { StorageService } from '../services/storageService';
 import { verifyDepartmentPassword } from '../services/authService';
+import { findEmployeeInDivision } from '../utils/directoryLookup';
 import { APP_VERSION } from '../config/appInfo';
-
-const MIN_USERNAME_LENGTH = 3;
 
 export function LoginScreen({ navigation }: LoginScreenProps) {
   const insets = useSafeAreaInsets();
@@ -32,25 +32,29 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const denyLogin = (title: string, message: string) =>
+    showDialog({ title, message, type: 'error' });
+
   const handleLogin = async () => {
     if (isSubmitting) return;
-    const trimmedUser = username.trim();
-    const trimmedDivision = division.trim();
 
-    if (!trimmedUser || !trimmedDivision || !password) {
+    const trimmedUser = username.trim();
+
+    if (!trimmedUser || !division || !password) {
       showDialog({
         title: 'Incomplete Fields',
-        message: 'Please enter username, division, and password.',
+        message: 'Please enter your name, select your division, and enter the password.',
         type: 'warning',
       });
       return;
     }
-    if (trimmedUser.length < MIN_USERNAME_LENGTH) {
-      showDialog({
-        title: 'Invalid Username',
-        message: `Username must be at least ${MIN_USERNAME_LENGTH} characters long.`,
-        type: 'warning',
-      });
+
+    // Access requires all three to match: the name must be listed under the
+    // selected division in the directory sheet (Office, Person), and the
+    // password must match the department password.
+    const employee = findEmployeeInDivision(directory, division, trimmedUser);
+    if (!employee) {
+      denyLogin('Login Denied', `"${trimmedUser}" is not registered under ${division}.`);
       return;
     }
 
@@ -67,15 +71,11 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         return;
       }
       if (check === 'invalid') {
-        showDialog({
-          title: 'Invalid Password',
-          message: 'The credentials entered are incorrect.',
-          type: 'error',
-        });
+        denyLogin('Login Denied', 'The password is incorrect. Please try again.');
         return;
       }
 
-      const session = { username: trimmedUser, division: trimmedDivision };
+      const session = { username: employee, division };
       await StorageService.saveSession(session);
       setPassword('');
       navigation.replace('Dashboard', session);
@@ -134,35 +134,22 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
             placeholder="Enter your name"
             value={username}
             onChangeText={setUsername}
-            autoComplete="username"
+            autoComplete="name"
+            autoCapitalize="words"
+            autoCorrect={false}
             leftIcon={<User size={18} color={colors.textSecondary} />}
           />
 
-          <AppText style={[styles.fieldLabel, { color: colors.textSecondary }]}>Division</AppText>
-          <TouchableOpacity
-            style={[
-              styles.dropdownButton,
-              { backgroundColor: colors.inputBackground, borderColor: colors.border },
-            ]}
-            activeOpacity={0.8}
+          <SelectField
+            label="Division"
+            value={division}
+            placeholder={isDirectoryLoading ? 'Loading divisions...' : 'Select Division'}
+            icon={<Building size={18} color={colors.textSecondary} />}
             onPress={() => {
               Keyboard.dismiss();
               setIsPickerOpen(true);
             }}
-            accessibilityRole="button"
-            accessibilityLabel={division ? `Division: ${division}` : 'Select division'}
-          >
-            <View style={styles.dropdownLeft}>
-              <Building size={18} color={colors.textSecondary} />
-              <AppText
-                style={[styles.dropdownText, { color: division ? colors.text : colors.textMuted }]}
-                numberOfLines={1}
-              >
-                {division || (isDirectoryLoading ? 'Loading divisions...' : 'Select Division')}
-              </AppText>
-            </View>
-            <ChevronDown size={18} color={colors.textSecondary} />
-          </TouchableOpacity>
+          />
 
           <CustomInput
             label="Password"
@@ -194,13 +181,16 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         </View>
 
         <AppText style={[styles.versionText, { color: colors.headerSubtext }]}>
-          WRD FileTracker v{APP_VERSION} • Government of Goa
+          WRD FileTracker v{APP_VERSION}
         </AppText>
       </KeyboardAwareScrollView>
 
       {isPickerOpen && (
-        <DivisionPickerModal
-          divisions={directory.divisions}
+        <OptionPickerModal
+          title="Select Division"
+          searchPlaceholder="Search division..."
+          emptyText="No divisions found matching"
+          options={directory.divisions}
           selected={division}
           onSelect={(selected) => {
             setDivision(selected);
@@ -251,31 +241,6 @@ const styles = StyleSheet.create({
     fontSize: 26,
     letterSpacing: -0.5,
     textAlign: 'center',
-  },
-  fieldLabel: {
-    fontFamily: fontFamilies.semiBold,
-    fontSize: 14,
-    marginBottom: 6,
-  },
-  dropdownButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1.5,
-    borderRadius: 14,
-    height: 54,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-  },
-  dropdownLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dropdownText: {
-    flex: 1,
-    fontSize: 16,
   },
   loginBtn: {
     marginTop: 10,

@@ -117,8 +117,13 @@ src/
 - The department password is checked **on the device** against a salted SHA-256 hash. This keeps
   the plaintext out of the app, but anyone with the APK can still brute-force a weak password
   offline. Use a long password, and rotate it if it leaks.
-- **The API has no authentication.** The username is whatever the user typed at login, and
-  `/scan` and `/regcode` accept anyone's requests. Real protection needs backend work: a login
+- **Login** succeeds only when all three match: the typed name must be listed under the selected
+  division in the directory CSV (`Office`, `Person`; case and extra spaces are ignored), and the
+  password must match the department password. Restored sessions are re-checked against the
+  latest downloaded directory. Everyone shares one password, so the app can't prove that the
+  person typing a name is that person.
+- **The API has no authentication.** `/scan` and `/regcode` accept anyone's requests, whatever
+  the app checks. Real protection needs backend work: a login
   endpoint that issues tokens, a token required on every request, and `POST` instead of `GET`
   for the two write endpoints.
 - Rooted/jailbroken devices get a full-screen block (`SecurityBlockScreen`). Development builds

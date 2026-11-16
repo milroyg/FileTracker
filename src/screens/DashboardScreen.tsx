@@ -11,6 +11,9 @@ import { CustomDialog } from '../components/common/CustomDialog';
 import { OutboxSheet } from '../components/outbox/OutboxSheet';
 import { RegisterFileModal } from '../components/RegisterFileModal';
 import { useOutbox } from '../hooks/useOutbox';
+import { useDirectory } from '../hooks/useDirectory';
+import { MODAL_SWAP_DELAY_MS } from '../utils/modal';
+import { findEmployeeInDivision } from '../utils/directoryLookup';
 
 export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
@@ -21,8 +24,16 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
   const [isOutboxOpen, setIsOutboxOpen] = useState(false);
   const [codeToRegister, setCodeToRegister] = useState<string | null>(null);
 
+  const { directory, isUsingFallback } = useDirectory();
+
   const attentionCount = outboxItems.filter((item) => item.status !== 'pending').length;
   const pendingCount = outboxItems.length - attentionCount;
+
+  // A restored session must still match the directory sheet (e.g. sessions from
+  // before names were validated, or people since removed). Only judged against a
+  // downloaded directory — never the bundled snapshot, which may be out of date.
+  const isSessionNotInDirectory =
+    !isUsingFallback && !findEmployeeInDivision(directory, division, username);
 
   const confirmLogout = async () => {
     setLogoutDialogVisible(false);
@@ -159,7 +170,8 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
           onClose={() => setIsOutboxOpen(false)}
           onRegisterFile={(code) => {
             setIsOutboxOpen(false);
-            setCodeToRegister(code);
+            // Let the sheet finish closing first (iOS won't present over a closing modal).
+            setTimeout(() => setCodeToRegister(code), MODAL_SWAP_DELAY_MS);
           }}
         />
       )}
@@ -183,6 +195,14 @@ export function DashboardScreen({ route, navigation }: DashboardScreenProps) {
           { text: 'Logout', style: 'destructive', onPress: confirmLogout },
         ]}
         onClose={() => setLogoutDialogVisible(false)}
+      />
+
+      <CustomDialog
+        visible={isSessionNotInDirectory && !isOutboxOpen && !codeToRegister}
+        title="Please Log In Again"
+        message={`"${username}" is not listed under ${division} in the employee directory. Please log in again with your name as it appears in the directory.`}
+        type="warning"
+        onClose={confirmLogout}
       />
     </View>
   );
