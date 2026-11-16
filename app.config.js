@@ -27,7 +27,7 @@ module.exports = ({ config }) => ({
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   ios: {
-    supportsTablet: true,
+    supportsTablet: false,
     bundleIdentifier: 'com.wrdfiletracker',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
